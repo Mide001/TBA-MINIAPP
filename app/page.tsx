@@ -22,11 +22,14 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { Button } from "./components/DemoComponents";
 import { Icon } from "./components/DemoComponents";
 import { TicTacToe } from "./components/TicTacToe";
+import { TicTacToeFriend } from "./components/TicTacToeFriend";
+import { Onboarding } from "./components/Onboarding";
 
 export default function App() {
   const { setFrameReady, isFrameReady, context } = useMiniKit();
   const [frameAdded, setFrameAdded] = useState(false);
   const [activeTab, setActiveTab] = useState("home");
+  const [gameMode, setGameMode] = useState<"computer" | "friend" | null>(null);
 
   const addFrame = useAddFrame();
   const openUrl = useOpenUrl();
@@ -41,6 +44,10 @@ export default function App() {
     const frameAdded = await addFrame();
     setFrameAdded(Boolean(frameAdded));
   }, [addFrame]);
+
+  const handleGameModeSelect = useCallback((mode: "computer" | "friend" | null) => {
+    setGameMode(mode);
+  }, []);
 
   const saveFrameButton = useMemo(() => {
     if (context && !context.client.added) {
@@ -95,7 +102,13 @@ export default function App() {
         </header>
 
         <main className="flex-1">
-          <TicTacToe />
+          {!gameMode ? (
+            <Onboarding onGameModeSelect={handleGameModeSelect} />
+          ) : gameMode === "computer" ? (
+            <TicTacToe />
+          ) : (
+            <TicTacToeFriend />
+          )}
         </main>
 
         <footer className="mt-2 pt-4 flex justify-center">
