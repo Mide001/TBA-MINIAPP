@@ -29,6 +29,7 @@ export default function App() {
   const { setFrameReady, isFrameReady, context } = useMiniKit();
   const [frameAdded, setFrameAdded] = useState(false);
   const [gameMode, setGameMode] = useState<"computer" | "friend" | null>(null);
+  const [friendMode, setFriendMode] = useState<"host" | "join" | null>(null);
 
   const addFrame = useAddFrame();
   const openUrl = useOpenUrl();
@@ -45,8 +46,9 @@ export default function App() {
   }, [addFrame]);
 
   const handleGameModeSelect = useCallback(
-    (mode: "computer" | "friend" | null) => {
+    (mode: "computer" | "friend" | null, mode2?: "host" | "join" | null) => {
       setGameMode(mode);
+      setFriendMode(mode2 || null);
     },
     [],
   );
@@ -87,7 +89,7 @@ export default function App() {
           ) : gameMode === "computer" ? (
             <TicTacToe />
           ) : (
-            <TicTacToeFriend />
+            <TicTacToeFriend mode={friendMode} />
           )}
         </main>
 
