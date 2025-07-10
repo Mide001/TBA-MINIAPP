@@ -12,6 +12,7 @@ export function TicTacToe() {
   const [currentPlayer, setCurrentPlayer] = useState<Player>("X");
   const [gameStatus, setGameStatus] = useState<GameStatus>("playing");
   const [winner, setWinner] = useState<Player | null>(null);
+  const [isThinking, setIsThinking] = useState(false);
 
   // Winning combinations
   const winningCombos = [
@@ -34,8 +35,67 @@ export function TicTacToe() {
     return boardState.every(cell => cell !== null);
   }, []);
 
+  // AI Logic - Minimax with Alpha-Beta Pruning
+  const getAvailableMoves = useCallback((boardState: BoardState): number[] => {
+    return boardState.map((cell, index) => cell === null ? index : -1).filter(index => index !== -1);
+  }, []);
+
+  const minimax = useCallback((boardState: BoardState, depth: number, alpha: number, beta: number, isMaximizing: boolean): number => {
+    const winner = checkWinner(boardState);
+    const isDraw = checkDraw(boardState);
+
+    // Terminal states
+    if (winner === "O") return 10 - depth; // AI wins
+    if (winner === "X") return depth - 10; // Player wins
+    if (isDraw) return 0; // Draw
+
+    const availableMoves = getAvailableMoves(boardState);
+    
+    if (isMaximizing) {
+      let maxEval = -Infinity;
+      for (const move of availableMoves) {
+        const newBoard = [...boardState];
+        newBoard[move] = "O";
+        const evaluation = minimax(newBoard, depth + 1, alpha, beta, false);
+        maxEval = Math.max(maxEval, evaluation);
+        alpha = Math.max(alpha, evaluation);
+        if (beta <= alpha) break; // Alpha-beta pruning
+      }
+      return maxEval;
+    } else {
+      let minEval = Infinity;
+      for (const move of availableMoves) {
+        const newBoard = [...boardState];
+        newBoard[move] = "X";
+        const evaluation = minimax(newBoard, depth + 1, alpha, beta, true);
+        minEval = Math.min(minEval, evaluation);
+        beta = Math.min(beta, evaluation);
+        if (beta <= alpha) break; // Alpha-beta pruning
+      }
+      return minEval;
+    }
+  }, [checkWinner, checkDraw, getAvailableMoves]);
+
+  const getBestMove = useCallback((boardState: BoardState): number => {
+    const availableMoves = getAvailableMoves(boardState);
+    let bestMove = -1;
+    let bestValue = -Infinity;
+
+    for (const move of availableMoves) {
+      const newBoard = [...boardState];
+      newBoard[move] = "O";
+      const value = minimax(newBoard, 0, -Infinity, Infinity, false);
+      if (value > bestValue) {
+        bestValue = value;
+        bestMove = move;
+      }
+    }
+
+    return bestMove;
+  }, [getAvailableMoves, minimax]);
+
   const handleCellClick = useCallback((index: number) => {
-    if (board[index] || gameStatus !== "playing") return;
+    if (board[index] || gameStatus !== "playing" || currentPlayer !== "X") return;
 
     const newBoard = [...board];
     newBoard[index] = currentPlayer;
@@ -48,9 +108,30 @@ export function TicTacToe() {
     } else if (checkDraw(newBoard)) {
       setGameStatus("draw");
     } else {
-      setCurrentPlayer(currentPlayer === "X" ? "O" : "X");
+      setCurrentPlayer("O");
+      // AI's turn
+      setIsThinking(true);
+      setTimeout(() => {
+        const aiMove = getBestMove(newBoard);
+        if (aiMove !== -1) {
+          const aiBoard = [...newBoard];
+          aiBoard[aiMove] = "O";
+          setBoard(aiBoard);
+
+          const aiWinner = checkWinner(aiBoard);
+          if (aiWinner) {
+            setWinner(aiWinner);
+            setGameStatus("won");
+          } else if (checkDraw(aiBoard)) {
+            setGameStatus("draw");
+          } else {
+            setCurrentPlayer("X");
+          }
+        }
+        setIsThinking(false);
+      }, 500); // Small delay to show AI is thinking
     }
-  }, [board, currentPlayer, gameStatus, checkWinner, checkDraw]);
+  }, [board, currentPlayer, gameStatus, checkWinner, checkDraw, getBestMove]);
 
   const resetGame = useCallback(() => {
     setBoard(Array(9).fill(null));
@@ -105,10 +186,10 @@ export function TicTacToe() {
           flex items-center justify-center 
           text-3xl sm:text-4xl font-bold 
           transition-all duration-200 
-          cursor-pointer
+          ${!value && gameStatus === "playing" && !isThinking ? 'cursor-pointer' : 'cursor-not-allowed'}
           relative
           ${value === 'X' ? 'text-blue-500' : value === 'O' ? 'text-red-500' : ''}
-          ${!value && gameStatus === "playing" ? 'hover:bg-[var(--app-accent-light)] hover:bg-opacity-10' : ''}
+          ${!value && gameStatus === "playing" && !isThinking ? 'hover:bg-[var(--app-accent-light)] hover:bg-opacity-10' : ''}
           ${getLineClass()}
         `}
       >
@@ -122,6 +203,8 @@ export function TicTacToe() {
       return `Player ${winner} wins!`;
     } else if (gameStatus === "draw") {
       return "It's a draw!";
+    } else if (isThinking) {
+      return "AI is thinking...";
     } else {
       return `Player ${currentPlayer}'s turn`;
     }
@@ -207,7 +290,6 @@ export function TicTacToe() {
       {/* Game Stats */}
       <div className="mt-6 text-center text-sm text-[var(--app-foreground-muted)]">
         <p>Tap a cell to make your move</p>
-        <p className="mt-1">Optimized for mobile play</p>
       </div>
     </div>
   );
