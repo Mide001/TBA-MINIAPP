@@ -26,7 +26,7 @@ type ButtonProps = {
   disabled?: boolean;
   type?: "button" | "submit" | "reset";
   icon?: ReactNode;
-}
+};
 
 export function Button({
   children,
@@ -76,14 +76,9 @@ type CardProps = {
   children: ReactNode;
   className?: string;
   onClick?: () => void;
-}
+};
 
-function Card({
-  title,
-  children,
-  className = "",
-  onClick,
-}: CardProps) {
+function Card({ title, children, className = "", onClick }: CardProps) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (onClick && (e.key === "Enter" || e.key === " ")) {
       e.preventDefault();
@@ -111,79 +106,11 @@ function Card({
   );
 }
 
-type FeaturesProps = {
-  setActiveTab: (tab: string) => void;
-};
-
-export function Features({ setActiveTab }: FeaturesProps) {
-  return (
-    <div className="space-y-6 animate-fade-in">
-      <Card title="Key Features">
-        <ul className="space-y-3 mb-4">
-          <li className="flex items-start">
-            <Icon name="check" className="text-[var(--app-accent)] mt-1 mr-2" />
-            <span className="text-[var(--app-foreground-muted)]">
-              Minimalistic and beautiful UI design
-            </span>
-          </li>
-          <li className="flex items-start">
-            <Icon name="check" className="text-[var(--app-accent)] mt-1 mr-2" />
-            <span className="text-[var(--app-foreground-muted)]">
-              Responsive layout for all devices
-            </span>
-          </li>
-          <li className="flex items-start">
-            <Icon name="check" className="text-[var(--app-accent)] mt-1 mr-2" />
-            <span className="text-[var(--app-foreground-muted)]">
-              Dark mode support
-            </span>
-          </li>
-          <li className="flex items-start">
-            <Icon name="check" className="text-[var(--app-accent)] mt-1 mr-2" />
-            <span className="text-[var(--app-foreground-muted)]">
-              OnchainKit integration
-            </span>
-          </li>
-        </ul>
-        <Button variant="outline" onClick={() => setActiveTab("home")}>
-          Back to Home
-        </Button>
-      </Card>
-    </div>
-  );
-}
-
-type HomeProps = {
-  setActiveTab: (tab: string) => void;
-};
-
-export function Home({ setActiveTab }: HomeProps) {
-  return (
-    <div className="space-y-6 animate-fade-in">
-      <Card title="My First Mini App">
-        <p className="text-[var(--app-foreground-muted)] mb-4">
-          This is a minimalistic Mini App built with OnchainKit components.
-        </p>
-        <Button
-          onClick={() => setActiveTab("features")}
-          icon={<Icon name="arrow-right" size="sm" />}
-        >
-          Explore Features
-        </Button>
-      </Card>
-
-      <TodoList />
-
-      <TransactionCard />
-    </div>
-  );
-}
-
 type IconProps = {
   name: "heart" | "star" | "check" | "plus" | "arrow-right";
   size?: "sm" | "md" | "lg";
   className?: string;
-}
+};
 
 export function Icon({ name, size = "md", className = "" }: IconProps) {
   const sizeClasses = {
@@ -283,7 +210,7 @@ type Todo = {
   id: number;
   text: string;
   completed: boolean;
-}
+};
 
 function TodoList() {
   const [todos, setTodos] = useState<Todo[]>([
@@ -386,33 +313,39 @@ function TodoList() {
   );
 }
 
-
 function TransactionCard() {
   const { address } = useAccount();
 
   // Example transaction call - sending 0 ETH to self
-  const calls = useMemo(() => address
-    ? [
-        {
-          to: address,
-          data: "0x" as `0x${string}`,
-          value: BigInt(0),
-        },
-      ]
-    : [], [address]);
+  const calls = useMemo(
+    () =>
+      address
+        ? [
+            {
+              to: address,
+              data: "0x" as `0x${string}`,
+              value: BigInt(0),
+            },
+          ]
+        : [],
+    [address],
+  );
 
   const sendNotification = useNotification();
 
-  const handleSuccess = useCallback(async (response: TransactionResponse) => {
-    const transactionHash = response.transactionReceipts[0].transactionHash;
+  const handleSuccess = useCallback(
+    async (response: TransactionResponse) => {
+      const transactionHash = response.transactionReceipts[0].transactionHash;
 
-    console.log(`Transaction successful: ${transactionHash}`);
+      console.log(`Transaction successful: ${transactionHash}`);
 
-    await sendNotification({
-      title: "Congratulations!",
-      body: `You sent your a transaction, ${transactionHash}!`,
-    });
-  }, [sendNotification]);
+      await sendNotification({
+        title: "Congratulations!",
+        body: `You sent your a transaction, ${transactionHash}!`,
+      });
+    },
+    [sendNotification],
+  );
 
   return (
     <Card title="Make Your First Transaction">
