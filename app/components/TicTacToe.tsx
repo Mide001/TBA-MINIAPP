@@ -144,7 +144,7 @@ export function TicTacToe() {
       if (winner === "X") {
         result = "Player Won!";
       } else if (winner === "O") {
-        result = "AI Won!";
+        result = "Computer Won!";
       } else {
         result = "It's a Draw!";
       }
@@ -155,7 +155,7 @@ export function TicTacToe() {
   }, [board]);
 
   const gameStatus =
-    gameResult || (isAITurn ? "AI is thinking..." : "Your turn");
+    gameResult || (isAITurn ? "Computer is thinking..." : "Your turn");
 
   const renderCell = (index: number) => {
     const value = board[index];
@@ -187,10 +187,10 @@ export function TicTacToe() {
       {/* Game Header */}
       <div className="text-center mb-6">
         <h2 className="text-2xl font-bold text-[var(--app-foreground)] mb-2">
-          Tic Tac Toe vs AI
+          Tic Tac Toe vs Computer
         </h2>
         <p className="text-sm text-[var(--app-foreground-muted)] mb-2">
-          Challenge our unbeatable AI
+          Challenge our smart computer
         </p>
         <p className={`text-lg font-medium ${
           gameResult 
@@ -241,10 +241,10 @@ export function TicTacToe() {
             onClick={() => {
               // Share game result
               const message = gameResult === "Player Won!" 
-                ? "I just beat the AI in Tic Tac Toe! 🎉"
-                : gameResult === "AI Won!"
-                  ? "The AI beat me in Tic Tac Toe! 🤖"
-                  : "I played a draw against the AI in Tic Tac Toe! 🤝";
+                ? "I just beat the computer in Tic Tac Toe! 🎉"
+                : gameResult === "Computer Won!"
+                  ? "The computer beat me in Tic Tac Toe! 🤖"
+                  : "I played a draw against the computer in Tic Tac Toe! 🤝";
               
               if (navigator.share) {
                 navigator.share({
@@ -267,7 +267,7 @@ export function TicTacToe() {
       {/* Game Stats */}
       <div className="mt-6 text-center text-sm text-[var(--app-foreground-muted)]">
         <p>Click a cell to make your move</p>
-        <p className="mt-1">The AI is unbeatable!</p>
+        <p className="mt-1">The computer is smart!</p>
       </div>
     </div>
   );
