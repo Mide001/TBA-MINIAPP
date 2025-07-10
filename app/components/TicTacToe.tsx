@@ -65,27 +65,55 @@ export function TicTacToe() {
       combo.includes(index) && combo.every(i => board[i] === winner)
     );
 
+    // Find the winning combination for line positioning
+    const winningCombo = winner ? winningCombos.find(combo => 
+      combo.every(i => board[i] === winner)
+    ) : null;
+
+    const getLineClass = () => {
+      if (!winningCombo || !winningCombo.includes(index)) return '';
+      
+      const lineColor = winner === 'X' ? 'after:bg-blue-500' : 'after:bg-red-500';
+      
+      // Determine line direction based on winning combination
+      if (winningCombo.includes(0) && winningCombo.includes(1) && winningCombo.includes(2)) {
+        return `after:content-[""] after:absolute after:top-1/2 after:left-2 after:right-2 after:h-0.5 ${lineColor} after:transform after:-translate-y-1/2`; // Horizontal top row
+      } else if (winningCombo.includes(3) && winningCombo.includes(4) && winningCombo.includes(5)) {
+        return `after:content-[""] after:absolute after:top-1/2 after:left-2 after:right-2 after:h-0.5 ${lineColor} after:transform after:-translate-y-1/2`; // Horizontal middle row
+      } else if (winningCombo.includes(6) && winningCombo.includes(7) && winningCombo.includes(8)) {
+        return `after:content-[""] after:absolute after:top-1/2 after:left-2 after:right-2 after:h-0.5 ${lineColor} after:transform after:-translate-y-1/2`; // Horizontal bottom row
+      } else if (winningCombo.includes(0) && winningCombo.includes(3) && winningCombo.includes(6)) {
+        return `after:content-[""] after:absolute after:left-1/2 after:top-2 after:bottom-2 after:w-0.5 ${lineColor} after:transform after:-translate-x-1/2`; // Vertical left column
+      } else if (winningCombo.includes(1) && winningCombo.includes(4) && winningCombo.includes(7)) {
+        return `after:content-[""] after:absolute after:left-1/2 after:top-2 after:bottom-2 after:w-0.5 ${lineColor} after:transform after:-translate-x-1/2`; // Vertical middle column
+      } else if (winningCombo.includes(2) && winningCombo.includes(5) && winningCombo.includes(8)) {
+        return `after:content-[""] after:absolute after:left-1/2 after:top-2 after:bottom-2 after:w-0.5 ${lineColor} after:transform after:-translate-x-1/2`; // Vertical right column
+      } else if (winningCombo.includes(0) && winningCombo.includes(4) && winningCombo.includes(8)) {
+        return `after:content-[""] after:absolute after:top-1/2 after:left-4 after:right-4 after:h-0.5 ${lineColor} after:transform after:rotate-45 after:scale-x-150`; // Diagonal top-left to bottom-right
+      } else if (winningCombo.includes(2) && winningCombo.includes(4) && winningCombo.includes(6)) {
+        return `after:content-[""] after:absolute after:top-1/2 after:left-4 after:right-4 after:h-0.5 ${lineColor} after:transform after:-rotate-45 after:scale-x-150`; // Diagonal top-right to bottom-left
+      }
+      return '';
+    };
+
     return (
-      <button
+      <div
         key={index}
         onClick={() => handleCellClick(index)}
-        disabled={value !== null || gameStatus !== "playing"}
         className={`
           w-20 h-20 sm:w-24 sm:h-24 
-          border-2 border-[var(--app-card-border)] 
-          bg-[var(--app-card-bg)] 
           flex items-center justify-center 
           text-3xl sm:text-4xl font-bold 
           transition-all duration-200 
-          hover:bg-[var(--app-accent-light)] 
-          disabled:cursor-not-allowed
-          ${value ? 'cursor-default' : 'cursor-pointer'}
-          ${isWinningCell ? 'bg-[var(--app-accent)] text-[var(--app-background)]' : ''}
+          cursor-pointer
+          relative
           ${value === 'X' ? 'text-blue-500' : value === 'O' ? 'text-red-500' : ''}
+          ${!value && gameStatus === "playing" ? 'hover:bg-[var(--app-accent-light)] hover:bg-opacity-10' : ''}
+          ${getLineClass()}
         `}
       >
         {value}
-      </button>
+      </div>
     );
   };
 
@@ -117,9 +145,24 @@ export function TicTacToe() {
         </p>
       </div>
 
-      {/* Game Board */}
-      <div className="grid grid-cols-3 gap-2 mb-6">
-        {Array(9).fill(null).map((_, index) => renderCell(index))}
+      {/* Main Game Board Container */}
+      <div className="flex justify-center items-center mb-6">
+        <div className="p-4">
+          {/* Game Board */}
+          <div className="grid grid-cols-3 gap-0 border-2 border-[var(--app-card-border)] border-opacity-50 rounded-lg overflow-hidden">
+            {Array(9).fill(null).map((_, index) => (
+              <div
+                key={index}
+                className={`
+                  ${index % 3 !== 2 ? 'border-r border-[var(--app-card-border)] border-opacity-30' : ''}
+                  ${index < 6 ? 'border-b border-[var(--app-card-border)] border-opacity-30' : ''}
+                `}
+              >
+                {renderCell(index)}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Game Controls */}
