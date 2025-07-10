@@ -209,24 +209,24 @@ export function TicTacToe() {
       </div>
 
       {/* Score Board */}
-      <div className="mb-6">
-        <div className="bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg p-4">
-          <div className="text-center mb-3">
-            <h3 className="text-sm font-semibold text-[var(--app-foreground-muted)] uppercase tracking-wide">
-              Score Board
+      <div className="mb-3">
+        <div className="bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg p-2">
+          <div className="text-center mb-1">
+            <h3 className="text-xs font-semibold text-[var(--app-foreground-muted)] uppercase tracking-wide">
+              Score
             </h3>
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-2">
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-500">{score.player}</div>
+              <div className="text-lg font-bold text-blue-500">{score.player}</div>
               <div className="text-xs text-[var(--app-foreground-muted)]">Player</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-red-500">{score.computer}</div>
+              <div className="text-lg font-bold text-red-500">{score.computer}</div>
               <div className="text-xs text-[var(--app-foreground-muted)]">Computer</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-gray-500">{score.draws}</div>
+              <div className="text-lg font-bold text-gray-500">{score.draws}</div>
               <div className="text-xs text-[var(--app-foreground-muted)]">Draws</div>
             </div>
           </div>
@@ -254,12 +254,12 @@ export function TicTacToe() {
       </div>
 
       {/* Game Controls */}
-      <div className="flex flex-col sm:flex-row gap-3 justify-center">
+      <div className="flex flex-row gap-3 justify-center">
         <Button
           variant="primary"
           size="md"
           onClick={startNewGame}
-          className="flex-1 sm:flex-none"
+          className="flex-1"
         >
           New Game
         </Button>
@@ -268,7 +268,7 @@ export function TicTacToe() {
           variant="outline"
           size="md"
           onClick={resetScore}
-          className="flex-1 sm:flex-none"
+          className="flex-1"
         >
           Reset Score
         </Button>
@@ -296,7 +296,7 @@ export function TicTacToe() {
                 navigator.clipboard.writeText(message);
               }
             }}
-            className="flex-1 sm:flex-none"
+            className="flex-1"
           >
             Share Result
           </Button>
