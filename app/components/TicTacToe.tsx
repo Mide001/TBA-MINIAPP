@@ -11,12 +11,17 @@ export function TicTacToe() {
   const [isAITurn, setIsAITurn] = useState(false);
   const [gameResult, setGameResult] = useState<string | null>(null);
   const [winningLine, setWinningLine] = useState<number[] | null>(null);
+  const [score, setScore] = useState({ player: 0, computer: 0, draws: 0 });
 
   const startNewGame = useCallback(() => {
     setBoard(Array(9).fill(null));
     setIsAITurn(false);
     setGameResult(null);
     setWinningLine(null);
+  }, []);
+
+  const resetScore = useCallback(() => {
+    setScore({ player: 0, computer: 0, draws: 0 });
   }, []);
 
   const calculateWinner = (
@@ -143,10 +148,13 @@ export function TicTacToe() {
 
       if (winner === "X") {
         result = "Player Won!";
+        setScore(prev => ({ ...prev, player: prev.player + 1 }));
       } else if (winner === "O") {
         result = "Computer Won!";
+        setScore(prev => ({ ...prev, computer: prev.computer + 1 }));
       } else {
         result = "It's a Draw!";
+        setScore(prev => ({ ...prev, draws: prev.draws + 1 }));
       }
 
       setGameResult(result);
@@ -189,9 +197,6 @@ export function TicTacToe() {
         <h2 className="text-2xl font-bold text-[var(--app-foreground)] mb-2">
           Tic Tac Toe vs Computer
         </h2>
-        <p className="text-sm text-[var(--app-foreground-muted)] mb-2">
-          Challenge our smart computer
-        </p>
         <p className={`text-lg font-medium ${
           gameResult 
             ? "text-[var(--app-accent)]" 
@@ -201,6 +206,31 @@ export function TicTacToe() {
         }`}>
           {gameStatus}
         </p>
+      </div>
+
+      {/* Score Board */}
+      <div className="mb-6">
+        <div className="bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg p-4">
+          <div className="text-center mb-3">
+            <h3 className="text-sm font-semibold text-[var(--app-foreground-muted)] uppercase tracking-wide">
+              Score Board
+            </h3>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-500">{score.player}</div>
+              <div className="text-xs text-[var(--app-foreground-muted)]">Player</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-red-500">{score.computer}</div>
+              <div className="text-xs text-[var(--app-foreground-muted)]">Computer</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-500">{score.draws}</div>
+              <div className="text-xs text-[var(--app-foreground-muted)]">Draws</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Main Game Board Container */}
@@ -232,6 +262,15 @@ export function TicTacToe() {
           className="flex-1 sm:flex-none"
         >
           New Game
+        </Button>
+        
+        <Button
+          variant="outline"
+          size="md"
+          onClick={resetScore}
+          className="flex-1 sm:flex-none"
+        >
+          Reset Score
         </Button>
         
         {gameResult && (
