@@ -7,7 +7,11 @@ type Player = "X" | "O";
 type BoardState = (Player | null)[];
 type GameStatus = "playing" | "won" | "draw";
 
-export function TicTacToeFriend() {
+interface TicTacToeFriendProps {
+  mode: "host" | "join" | null;
+}
+
+export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
   const [board, setBoard] = useState<BoardState>(Array(9).fill(null));
   const [currentPlayer, setCurrentPlayer] = useState<Player>("X");
   const [gameStatus, setGameStatus] = useState<GameStatus>("playing");
@@ -132,10 +136,10 @@ export function TicTacToeFriend() {
       {/* Game Header */}
       <div className="text-center mb-6">
         <h2 className="text-2xl font-bold text-[var(--app-foreground)] mb-2">
-          Tic Tac Toe
+          Tic Tac Toe {mode === "host" ? "(Host)" : mode === "join" ? "(Join)" : ""}
         </h2>
         <p className="text-sm text-[var(--app-foreground-muted)] mb-2">
-          Pass and play with a friend
+          {mode === "host" ? "Create a game room for your friend" : mode === "join" ? "Join your friend's game room" : "Pass and play with a friend"}
         </p>
         <p className={`text-lg font-medium ${
           gameStatus === "playing" 
