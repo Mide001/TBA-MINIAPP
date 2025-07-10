@@ -28,7 +28,6 @@ import { Onboarding } from "./components/Onboarding";
 export default function App() {
   const { setFrameReady, isFrameReady, context } = useMiniKit();
   const [frameAdded, setFrameAdded] = useState(false);
-  const [activeTab, setActiveTab] = useState("home");
   const [gameMode, setGameMode] = useState<"computer" | "friend" | null>(null);
 
   const addFrame = useAddFrame();
@@ -45,9 +44,12 @@ export default function App() {
     setFrameAdded(Boolean(frameAdded));
   }, [addFrame]);
 
-  const handleGameModeSelect = useCallback((mode: "computer" | "friend" | null) => {
-    setGameMode(mode);
-  }, []);
+  const handleGameModeSelect = useCallback(
+    (mode: "computer" | "friend" | null) => {
+      setGameMode(mode);
+    },
+    [],
+  );
 
   const saveFrameButton = useMemo(() => {
     if (context && !context.client.added) {
@@ -79,28 +81,6 @@ export default function App() {
   return (
     <div className="flex flex-col min-h-screen font-sans text-[var(--app-foreground)] mini-app-theme from-[var(--app-background)] to-[var(--app-gray)]">
       <div className="w-full max-w-md mx-auto px-4 py-3">
-        <header className="flex justify-between items-center mb-3 h-11">
-          <div>
-            <div className="flex items-center space-x-2">
-              <Wallet className="z-10">
-                <ConnectWallet>
-                  <Name className="text-inherit" />
-                </ConnectWallet>
-                <WalletDropdown>
-                  <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
-                    <Avatar />
-                    <Name />
-                    <Address />
-                    <EthBalance />
-                  </Identity>
-                  <WalletDropdownDisconnect />
-                </WalletDropdown>
-              </Wallet>
-            </div>
-          </div>
-          <div>{saveFrameButton}</div>
-        </header>
-
         <main className="flex-1">
           {!gameMode ? (
             <Onboarding onGameModeSelect={handleGameModeSelect} />
