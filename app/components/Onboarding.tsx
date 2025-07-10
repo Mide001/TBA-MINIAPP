@@ -128,7 +128,6 @@ export function Onboarding({ onGameModeSelect }: OnboardingProps) {
       {/* Game Info */}
       <div className="mt-8 text-center text-sm text-[var(--app-foreground-muted)]">
         <p>Select a game mode to begin</p>
-        <p className="mt-1">Optimized for mobile play</p>
       </div>
     </div>
   );
