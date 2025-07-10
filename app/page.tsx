@@ -21,6 +21,7 @@ import {
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { Button } from "./components/DemoComponents";
 import { Icon } from "./components/DemoComponents";
+import { TicTacToe } from "./components/TicTacToe";
 
 export default function App() {
   const { setFrameReady, isFrameReady, context } = useMiniKit();
@@ -94,6 +95,7 @@ export default function App() {
         </header>
 
         <main className="flex-1">
+          <TicTacToe />
         </main>
 
         <footer className="mt-2 pt-4 flex justify-center">
