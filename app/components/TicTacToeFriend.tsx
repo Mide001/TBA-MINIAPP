@@ -554,18 +554,18 @@ export function TicTacToeFriend({ mode, rounds }: TicTacToeFriendProps) {
         </div>
       </div>
 
-      {/* Game Controls */}
-      <div className="flex flex-col sm:flex-row gap-3 justify-center">
-        <Button
-          variant="primary"
-          size="md"
-          onClick={resetGame}
-          className="flex-1 sm:flex-none"
-        >
-          New Game
-        </Button>
+      {/* Game Controls - Only show when game is finished */}
+      {(gameStatus === "won" || gameStatus === "draw") && (
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Button
+            variant="primary"
+            size="md"
+            onClick={resetGame}
+            className="flex-1 sm:flex-none"
+          >
+            New Game
+          </Button>
 
-        {gameStatus !== "playing" && (
           <Button
             variant="outline"
             size="md"
@@ -590,8 +590,8 @@ export function TicTacToeFriend({ mode, rounds }: TicTacToeFriendProps) {
           >
             Share Result
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Game Stats */}
       <div className="mt-6 text-center text-sm text-[var(--app-foreground-muted)]">
