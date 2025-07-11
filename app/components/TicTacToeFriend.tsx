@@ -475,19 +475,6 @@ export function TicTacToeFriend({ mode, rounds }: TicTacToeFriendProps) {
           <div className="text-sm text-[var(--app-foreground-muted)] mb-1">
             Round {matchState.currentRound} of {matchState.totalRounds}
           </div>
-          <div className="flex justify-center items-center space-x-4 text-sm">
-            <div className="flex items-center space-x-2">
-              <span className="text-blue-500 font-semibold">
-                Host: {matchState.hostWins}
-              </span>
-            </div>
-            <div className="text-[var(--app-foreground-muted)]">vs</div>
-            <div className="flex items-center space-x-2">
-              <span className="text-red-500 font-semibold">
-                Guest: {matchState.guestWins}
-              </span>
-            </div>
-          </div>
         </div>
 
         <p
