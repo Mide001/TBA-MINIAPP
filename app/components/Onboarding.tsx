@@ -334,7 +334,7 @@ export function Onboarding({ onGameModeSelect }: OnboardingProps) {
                     Join Game
                   </h3>
                   <p className="text-sm text-[var(--app-foreground-muted)] leading-relaxed">
-                    Join your friend's room with a code
+                    Join your friend&apos;s room with a code
                   </p>
                   <div className="mt-2 flex flex-wrap gap-1">
                     <span className="px-2 py-1 bg-green-100 text-green-600 text-xs font-semibold rounded-full">
