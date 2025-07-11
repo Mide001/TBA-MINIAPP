@@ -8,15 +8,13 @@ type GameMode = "computer" | "friend" | null;
 type FriendMode = "host" | "join" | null;
 
 interface OnboardingProps {
-  onGameModeSelect: (mode: GameMode, friendMode?: FriendMode, rounds?: number) => void;
+  onGameModeSelect: (mode: GameMode, friendMode?: FriendMode) => void;
 }
 
 export function Onboarding({ onGameModeSelect }: OnboardingProps) {
   const [selectedMode, setSelectedMode] = useState<GameMode>(null);
   const [friendMode, setFriendMode] = useState<FriendMode>(null);
   const [showFriendOptions, setShowFriendOptions] = useState(false);
-  const [showRoundsSelection, setShowRoundsSelection] = useState(false);
-  const [selectedRounds, setSelectedRounds] = useState<number>(3);
 
   const handleModeSelect = (mode: GameMode) => {
     setSelectedMode(mode);
@@ -27,46 +25,16 @@ export function Onboarding({ onGameModeSelect }: OnboardingProps) {
     }
   };
 
-  const handleRoundsSelect = (rounds: number) => {
-    setSelectedRounds(rounds);
-    setShowRoundsSelection(false);
-    onGameModeSelect("friend", "host", rounds);
-  };
-
   const handleFriendModeSelect = (mode: FriendMode) => {
     setFriendMode(mode);
-    if (mode === "host") {
-      // Host needs to select rounds first
-      setShowFriendOptions(false);
-      setShowRoundsSelection(true);
-    } else if (mode === "join") {
-      // Guest doesn't select rounds - they join whatever the host set
-      onGameModeSelect("friend", mode, undefined);
-    }
+    onGameModeSelect("friend", mode);
   };
 
   const goBack = () => {
-    if (showRoundsSelection) {
-      setShowRoundsSelection(false);
-      setShowFriendOptions(true);
-    } else if (showFriendOptions) {
-      setShowFriendOptions(false);
-      setSelectedMode(null);
-    } else {
-      setSelectedMode(null);
-      setFriendMode(null);
-      setShowFriendOptions(false);
-      setShowRoundsSelection(false);
-    }
+    setSelectedMode(null);
+    setFriendMode(null);
+    setShowFriendOptions(false);
   };
-
-  const getCurrentStepTitle = () => {
-    if (showRoundsSelection) return "Select number of rounds";
-    if (showFriendOptions) return "Choose how to play with friend";
-    return "Choose your game mode";
-  };
-
-  const roundsOptions = [1, 3, 5, 7, 9];
 
   return (
     <div className="w-full max-w-sm mx-auto px-4 py-6">
@@ -81,61 +49,12 @@ export function Onboarding({ onGameModeSelect }: OnboardingProps) {
           Tic Tac Toe
         </h1>
         <p className="text-base text-[var(--app-foreground-muted)] font-medium">
-          {getCurrentStepTitle()}
+          {showFriendOptions ? "Choose how to play with friend" : "Choose your game mode"}
         </p>
       </div>
 
-      {/* Back Button */}
-      {(showFriendOptions || showRoundsSelection) && (
-        <div className="mb-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={goBack}
-            className="text-[var(--app-foreground-muted)] hover:text-[var(--app-foreground)]"
-          >
-            ← Back
-          </Button>
-        </div>
-      )}
-
-      {/* Rounds Selection - Only for Host */}
-      {showRoundsSelection ? (
-        <div className="space-y-4 mb-8">
-          <div className="text-center mb-6">
-            <h2 className="text-lg font-semibold text-[var(--app-foreground)] mb-2">
-              How many rounds?
-            </h2>
-            <p className="text-sm text-[var(--app-foreground-muted)]">
-              First to win {selectedRounds} rounds wins the match
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-3 gap-3">
-            {roundsOptions.map((rounds) => (
-              <div
-                key={rounds}
-                className={`
-                  group relative overflow-hidden rounded-xl border-2 cursor-pointer transition-all duration-200 active:scale-95 p-4 text-center
-                  ${selectedRounds === rounds 
-                    ? "border-[var(--app-accent)] bg-gradient-to-r from-[var(--app-accent-light)] to-blue-50 shadow-lg" 
-                    : "border-[var(--app-card-border)] bg-[var(--app-card-bg)] hover:border-[var(--app-accent)]"
-                  }
-                `}
-                onClick={() => handleRoundsSelect(rounds)}
-              >
-                <div className="text-2xl font-bold text-[var(--app-foreground)] mb-1">
-                  {rounds}
-                </div>
-                <div className="text-xs text-[var(--app-foreground-muted)]">
-                  {rounds === 1 ? "Round" : "Rounds"}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : !showFriendOptions ? (
-        /* Game Mode Selection */
+      {/* Game Mode Selection */}
+      {!showFriendOptions ? (
         <div className="space-y-4 mb-8">
           {/* Play with Computer */}
           <div
@@ -279,14 +198,14 @@ export function Onboarding({ onGameModeSelect }: OnboardingProps) {
                     Host Game
                   </h3>
                   <p className="text-sm text-[var(--app-foreground-muted)] leading-relaxed">
-                    Create a room and invite your friend
+                    Create a new game room
                   </p>
                   <div className="mt-2 flex flex-wrap gap-1">
                     <span className="px-2 py-1 bg-green-100 text-green-600 text-xs font-semibold rounded-full">
-                      Best of {selectedRounds}
+                      Create
                     </span>
                     <span className="px-2 py-1 bg-blue-100 text-blue-600 text-xs font-semibold rounded-full">
-                      Host
+                      Room
                     </span>
                   </div>
                 </div>
@@ -310,8 +229,8 @@ export function Onboarding({ onGameModeSelect }: OnboardingProps) {
             className={`
               group relative overflow-hidden rounded-xl border-2 cursor-pointer transition-all duration-200 active:scale-95
               ${friendMode === "join" 
-                ? "border-green-500 bg-gradient-to-r from-green-50 to-emerald-50 shadow-lg" 
-                : "border-[var(--app-card-border)] bg-[var(--app-card-bg)] hover:border-green-500"
+                ? "border-blue-500 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-lg" 
+                : "border-[var(--app-card-border)] bg-[var(--app-card-bg)] hover:border-blue-500"
               }
             `}
             onClick={() => handleFriendModeSelect("join")}
@@ -322,11 +241,11 @@ export function Onboarding({ onGameModeSelect }: OnboardingProps) {
                   <div className={`
                     w-12 h-12 rounded-xl flex items-center justify-center shadow-lg transition-all duration-200
                     ${friendMode === "join" 
-                      ? "bg-gradient-to-br from-green-500 to-emerald-600 transform scale-110" 
-                      : "bg-gradient-to-br from-gray-500 to-gray-600 group-hover:from-green-500 group-hover:to-emerald-600"
+                      ? "bg-gradient-to-br from-blue-500 to-indigo-600 transform scale-110" 
+                      : "bg-gradient-to-br from-gray-500 to-gray-600 group-hover:from-blue-500 group-hover:to-indigo-600"
                     }
                   `}>
-                    <Icon name="check" size="md" className="text-white" />
+                    <Icon name="heart" size="md" className="text-white" />
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -334,14 +253,14 @@ export function Onboarding({ onGameModeSelect }: OnboardingProps) {
                     Join Game
                   </h3>
                   <p className="text-sm text-[var(--app-foreground-muted)] leading-relaxed">
-                    Join your friend&apos;s room with a code
+                    Enter a game room code
                   </p>
                   <div className="mt-2 flex flex-wrap gap-1">
-                    <span className="px-2 py-1 bg-green-100 text-green-600 text-xs font-semibold rounded-full">
-                      Join Room
-                    </span>
                     <span className="px-2 py-1 bg-blue-100 text-blue-600 text-xs font-semibold rounded-full">
-                      Guest
+                      Join
+                    </span>
+                    <span className="px-2 py-1 bg-purple-100 text-purple-600 text-xs font-semibold rounded-full">
+                      Room
                     </span>
                   </div>
                 </div>
@@ -351,8 +270,8 @@ export function Onboarding({ onGameModeSelect }: OnboardingProps) {
                     size="md" 
                     className={`transition-all duration-200 ${
                       friendMode === "join" 
-                        ? "text-green-500 transform translate-x-1" 
-                        : "text-[var(--app-foreground-muted)] group-hover:text-green-500"
+                        ? "text-blue-500 transform translate-x-1" 
+                        : "text-[var(--app-foreground-muted)] group-hover:text-blue-500"
                     }`} 
                   />
                 </div>
@@ -372,13 +291,25 @@ export function Onboarding({ onGameModeSelect }: OnboardingProps) {
               if (selectedMode === "computer") {
                 onGameModeSelect(selectedMode);
               } else if (friendMode) {
-                onGameModeSelect("friend", friendMode, selectedRounds);
+                onGameModeSelect("friend", friendMode);
               }
             }}
             className="w-full py-3 text-base font-semibold shadow-lg active:scale-95 transition-all duration-200"
           >
             🚀 Start Game
           </Button>
+        </div>
+      )}
+
+      {/* Back Button for Friend Mode */}
+      {showFriendOptions && (
+        <div className="text-center mb-4">
+          <button
+            onClick={goBack}
+            className="text-sm text-[var(--app-foreground-muted)] underline underline-offset-2 hover:text-[var(--app-foreground)] transition-colors duration-200"
+          >
+            ← Back to game modes
+          </button>
         </div>
       )}
 
