@@ -34,6 +34,8 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
   const [roundScores, setRoundScores] = useState<{ host: number; guest: number }>({ host: 0, guest: 0 });
   const [gameWinner, setGameWinner] = useState<Player | undefined>(undefined);
   const [showRoundsSelection, setShowRoundsSelection] = useState<boolean>(false);
+  // Add startingPlayer state
+  const [startingPlayer, setStartingPlayer] = useState<Player>("X");
 
   // Generate a random 6-character room code
   const generateRoomCode = useCallback(() => {
@@ -77,6 +79,9 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
       if (room.currentRound) {
         setCurrentRound(room.currentRound);
       }
+      if (room.startingPlayer) {
+        setStartingPlayer(room.startingPlayer);
+      }
     });
 
     newSocket.on("player-joined", (room) => {
@@ -94,6 +99,9 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
       }
       if (room.currentRound) {
         setCurrentRound(room.currentRound);
+      }
+      if (room.startingPlayer) {
+        setStartingPlayer(room.startingPlayer);
       }
     });
 
@@ -124,6 +132,9 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
       } else if (room.gameStatus === "draw") {
         setScore((prev) => ({ ...prev, draws: prev.draws + 1 }));
       }
+      if (room.startingPlayer) {
+        setStartingPlayer(room.startingPlayer);
+      }
     });
 
     newSocket.on("game-reset", (room) => {
@@ -141,6 +152,9 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
       }
       if (room.gameWinner) {
         setGameWinner(room.gameWinner);
+      }
+      if (room.startingPlayer) {
+        setStartingPlayer(room.startingPlayer);
       }
     });
 
@@ -591,6 +605,9 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
       {/* Game Stats */}
       <div className="mt-6 text-center text-sm text-[var(--app-foreground-muted)]">
         <p>You are playing as: <span className="font-semibold text-[var(--app-accent)]">Player {myPlayer}</span></p>
+        <p className="text-xs text-[var(--app-foreground-muted)] mb-1">
+          Starting Player: {startingPlayer === myPlayer ? "You" : "Opponent"}
+        </p>
       </div>
     </div>
   );
