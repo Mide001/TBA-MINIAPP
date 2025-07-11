@@ -21,9 +21,7 @@ export function TicTacToe() {
 
 
 
-  const calculateWinner = (
-    squares: Player[],
-  ): { winner: Player; line: number[] | null } => {
+  const calculateWinner = useCallback((squares: Player[]): { winner: Player; line: number[] | null } => {
     const lines = [
       [0, 1, 2],
       [3, 4, 5],
@@ -46,23 +44,19 @@ export function TicTacToe() {
       }
     }
     return { winner: null, line: null };
-  };
+  }, []);
 
-  const isBoardFull = (squares: Player[]): boolean => {
+  const isBoardFull = useCallback((squares: Player[]): boolean => {
     return squares.every((square) => square !== null);
-  };
+  }, []);
 
-  const getEmptySquares = (squares: Player[]): number[] => {
+  const getEmptySquares = useCallback((squares: Player[]): number[] => {
     return squares
       .map((square, index) => (square === null ? index : null))
       .filter((index): index is number => index !== null);
-  };
+  }, []);
 
-  const minimax = (
-    squares: Player[],
-    depth: number,
-    isMaximizing: boolean,
-  ): number => {
+  const minimax = useCallback((squares: Player[], depth: number, isMaximizing: boolean): number => {
     const winner = calculateWinner(squares);
     if (winner.winner === "O") return 10 - depth;
     if (winner.winner === "X") return depth - 10;
@@ -87,7 +81,7 @@ export function TicTacToe() {
       }
       return bestScore;
     }
-  };
+  }, [calculateWinner, isBoardFull, getEmptySquares]);
 
   const getAIMove = useCallback((squares: Player[]): number => {
     const emptySquares = getEmptySquares(squares);
@@ -105,7 +99,7 @@ export function TicTacToe() {
     }
 
     return bestMove;
-  }, [minimax]);
+  }, [minimax, getEmptySquares]);
 
   const handleClick = (index: number) => {
     if (board[index] || calculateWinner(board).winner || isAITurn || gameResult)
