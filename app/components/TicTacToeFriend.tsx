@@ -62,7 +62,7 @@ export function TicTacToeFriend({ mode, rounds }: TicTacToeFriendProps) {
   // Initialize Socket.IO connection
   useEffect(() => {
     // https://tba-miniapp-server-production.up.railway.app
-    const newSocket = io("http://localhost:3001", {
+    const newSocket = io("https://tba-miniapp-server-production.up.railway.app", {
       transports: ["websocket", "polling"],
     });
 
@@ -110,13 +110,11 @@ export function TicTacToeFriend({ mode, rounds }: TicTacToeFriendProps) {
           setScore((prev) => ({ ...prev, host: prev.host + 1 }));
           // Update match state
           setMatchState((prev) => {
-            const newHostWins = prev.hostWins + 1;
-            const newGuestWins = prev.guestWins;
             const matchWinner =
-              newHostWins >= Math.ceil(prev.totalRounds / 2) ? "X" : null;
+              prev.hostWins + 1 >= Math.ceil(prev.totalRounds / 2) ? "X" : null;
             return {
               ...prev,
-              hostWins: newHostWins,
+              hostWins: prev.hostWins + 1,
               matchWinner,
             };
           });
@@ -124,13 +122,11 @@ export function TicTacToeFriend({ mode, rounds }: TicTacToeFriendProps) {
           setScore((prev) => ({ ...prev, guest: prev.guest + 1 }));
           // Update match state
           setMatchState((prev) => {
-            const newGuestWins = prev.guestWins + 1;
-            const newHostWins = prev.hostWins;
             const matchWinner =
-              newGuestWins >= Math.ceil(prev.totalRounds / 2) ? "O" : null;
+              prev.guestWins + 1 >= Math.ceil(prev.totalRounds / 2) ? "O" : null;
             return {
               ...prev,
-              guestWins: newGuestWins,
+              guestWins: prev.guestWins + 1,
               matchWinner,
             };
           });
@@ -237,6 +233,13 @@ export function TicTacToeFriend({ mode, rounds }: TicTacToeFriendProps) {
       socket.emit("reset-game", roomCode);
     }
   }, [socket, roomCode]);
+
+  // Update the useEffect for game reset to include matchState.matchWinner in the dependency array
+  useEffect(() => {
+    if (socket) {
+      socket.emit("reset-game", roomCode);
+    }
+  }, [socket, isConnected, matchState.matchWinner]);
 
   const renderCell = (index: number) => {
     const value = board[index];
