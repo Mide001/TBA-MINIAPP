@@ -19,7 +19,8 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
   // currentPlayer state removed - unused
   const [gameStatus, setGameStatus] = useState<GameStatus>("waiting");
   const [winner, setWinner] = useState<Player | null>(null);
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("disconnected");
+  const [connectionStatus, setConnectionStatus] =
+    useState<ConnectionStatus>("disconnected");
   const [roomCode, setRoomCode] = useState<string>("");
   const [inputCode, setInputCode] = useState<string>("");
   const [isMyTurn, setIsMyTurn] = useState<boolean>(false);
@@ -27,13 +28,21 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   // Scoreboard state
-  const [score, setScore] = useState<{ host: number; guest: number; draws: number }>({ host: 0, guest: 0, draws: 0 });
+  const [score, setScore] = useState<{
+    host: number;
+    guest: number;
+    draws: number;
+  }>({ host: 0, guest: 0, draws: 0 });
   // Rounds system state
   const [totalRounds, setTotalRounds] = useState<number>(3);
   const [currentRound, setCurrentRound] = useState<number>(1);
-  const [roundScores, setRoundScores] = useState<{ host: number; guest: number }>({ host: 0, guest: 0 });
+  const [roundScores, setRoundScores] = useState<{
+    host: number;
+    guest: number;
+  }>({ host: 0, guest: 0 });
   const [gameWinner, setGameWinner] = useState<Player | undefined>(undefined);
-  const [showRoundsSelection, setShowRoundsSelection] = useState<boolean>(false);
+  const [showRoundsSelection, setShowRoundsSelection] =
+    useState<boolean>(false);
   // Add startingPlayer state
   const [startingPlayer, setStartingPlayer] = useState<Player>("X");
 
@@ -50,9 +59,12 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
   // Initialize Socket.IO connection
   useEffect(() => {
     // https://tba-miniapp-server-production.up.railway.app
-    const newSocket = io("http://localhost:3001", {
-      transports: ["websocket", "polling"],
-    });
+    const newSocket = io(
+      "https://tba-miniapp-server-production.up.railway.app",
+      {
+        transports: ["websocket", "polling"],
+      },
+    );
 
     newSocket.on("connect", () => {
       console.log("Connected to Socket.IO server");
@@ -196,24 +208,33 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
 
   // Winning combinations
   const winningCombos = [
-    [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
-    [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
-    [0, 4, 8], [2, 4, 6] // Diagonals
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8], // Rows
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8], // Columns
+    [0, 4, 8],
+    [2, 4, 6], // Diagonals
   ];
 
   // checkWinner function removed - unused
 
   // checkDraw function removed - unused
 
-  const handleCellClick = useCallback((index: number) => {
-    if (board[index] || gameStatus !== "playing" || !isMyTurn || !socket) return;
+  const handleCellClick = useCallback(
+    (index: number) => {
+      if (board[index] || gameStatus !== "playing" || !isMyTurn || !socket)
+        return;
 
-    socket.emit("make-move", {
-      roomId: roomCode,
-      index,
-      player: myPlayer,
-    });
-  }, [board, gameStatus, isMyTurn, socket, roomCode, myPlayer]);
+      socket.emit("make-move", {
+        roomId: roomCode,
+        index,
+        player: myPlayer,
+      });
+    },
+    [board, gameStatus, isMyTurn, socket, roomCode, myPlayer],
+  );
 
   const handleJoinGame = useCallback(() => {
     if (inputCode.length === 6 && socket) {
@@ -243,34 +264,67 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
     const value = board[index];
 
     // Find the winning combination for line positioning
-    const winningCombo = winner ? winningCombos.find(combo => 
-      combo.every(i => board[i] === winner)
-    ) : null;
+    const winningCombo = winner
+      ? winningCombos.find((combo) => combo.every((i) => board[i] === winner))
+      : null;
 
     const getLineClass = () => {
-      if (!winningCombo || !winningCombo.includes(index)) return '';
-      
-      const lineColor = winner === 'X' ? 'after:bg-blue-500' : 'after:bg-red-500';
-      
+      if (!winningCombo || !winningCombo.includes(index)) return "";
+
+      const lineColor =
+        winner === "X" ? "after:bg-blue-500" : "after:bg-red-500";
+
       // Determine line direction based on winning combination
-      if (winningCombo.includes(0) && winningCombo.includes(1) && winningCombo.includes(2)) {
+      if (
+        winningCombo.includes(0) &&
+        winningCombo.includes(1) &&
+        winningCombo.includes(2)
+      ) {
         return `after:content-[""] after:absolute after:top-1/2 after:left-2 after:right-2 after:h-0.5 ${lineColor} after:transform after:-translate-y-1/2`; // Horizontal top row
-      } else if (winningCombo.includes(3) && winningCombo.includes(4) && winningCombo.includes(5)) {
+      } else if (
+        winningCombo.includes(3) &&
+        winningCombo.includes(4) &&
+        winningCombo.includes(5)
+      ) {
         return `after:content-[""] after:absolute after:top-1/2 after:left-2 after:right-2 after:h-0.5 ${lineColor} after:transform after:-translate-y-1/2`; // Horizontal middle row
-      } else if (winningCombo.includes(6) && winningCombo.includes(7) && winningCombo.includes(8)) {
+      } else if (
+        winningCombo.includes(6) &&
+        winningCombo.includes(7) &&
+        winningCombo.includes(8)
+      ) {
         return `after:content-[""] after:absolute after:top-1/2 after:left-2 after:right-2 after:h-0.5 ${lineColor} after:transform after:-translate-y-1/2`; // Horizontal bottom row
-      } else if (winningCombo.includes(0) && winningCombo.includes(3) && winningCombo.includes(6)) {
+      } else if (
+        winningCombo.includes(0) &&
+        winningCombo.includes(3) &&
+        winningCombo.includes(6)
+      ) {
         return `after:content-[""] after:absolute after:left-1/2 after:top-2 after:bottom-2 after:w-0.5 ${lineColor} after:transform after:-translate-x-1/2`; // Vertical left column
-      } else if (winningCombo.includes(1) && winningCombo.includes(4) && winningCombo.includes(7)) {
+      } else if (
+        winningCombo.includes(1) &&
+        winningCombo.includes(4) &&
+        winningCombo.includes(7)
+      ) {
         return `after:content-[""] after:absolute after:left-1/2 after:top-2 after:bottom-2 after:w-0.5 ${lineColor} after:transform after:-translate-x-1/2`; // Vertical middle column
-      } else if (winningCombo.includes(2) && winningCombo.includes(5) && winningCombo.includes(8)) {
+      } else if (
+        winningCombo.includes(2) &&
+        winningCombo.includes(5) &&
+        winningCombo.includes(8)
+      ) {
         return `after:content-[""] after:absolute after:left-1/2 after:top-2 after:bottom-2 after:w-0.5 ${lineColor} after:transform after:-translate-x-1/2`; // Vertical right column
-      } else if (winningCombo.includes(0) && winningCombo.includes(4) && winningCombo.includes(8)) {
+      } else if (
+        winningCombo.includes(0) &&
+        winningCombo.includes(4) &&
+        winningCombo.includes(8)
+      ) {
         return `after:content-[""] after:absolute after:top-1/2 after:left-4 after:right-4 after:h-0.5 ${lineColor} after:transform after:rotate-45 after:scale-x-150`; // Diagonal top-left to bottom-right
-      } else if (winningCombo.includes(2) && winningCombo.includes(4) && winningCombo.includes(6)) {
+      } else if (
+        winningCombo.includes(2) &&
+        winningCombo.includes(4) &&
+        winningCombo.includes(6)
+      ) {
         return `after:content-[""] after:absolute after:top-1/2 after:left-4 after:right-4 after:h-0.5 ${lineColor} after:transform after:-rotate-45 after:scale-x-150`; // Diagonal top-right to bottom-left
       }
-      return '';
+      return "";
     };
 
     return (
@@ -282,10 +336,10 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
           flex items-center justify-center 
           text-3xl sm:text-4xl font-bold 
           transition-all duration-200 
-          ${!value && gameStatus === "playing" && isMyTurn ? 'cursor-pointer' : 'cursor-not-allowed'}
+          ${!value && gameStatus === "playing" && isMyTurn ? "cursor-pointer" : "cursor-not-allowed"}
           relative
-          ${value === 'X' ? 'text-blue-500' : value === 'O' ? 'text-red-500' : ''}
-          ${!value && gameStatus === "playing" && isMyTurn ? 'hover:bg-[var(--app-accent-light)] hover:bg-opacity-10' : ''}
+          ${value === "X" ? "text-blue-500" : value === "O" ? "text-red-500" : ""}
+          ${!value && gameStatus === "playing" && isMyTurn ? "hover:bg-[var(--app-accent-light)] hover:bg-opacity-10" : ""}
           ${getLineClass()}
         `}
       >
@@ -296,7 +350,9 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
 
   const getStatusMessage = () => {
     if (gameWinner) {
-      return gameWinner === myPlayer ? "You won the game!" : "Opponent won the game!";
+      return gameWinner === myPlayer
+        ? "You won the game!"
+        : "Opponent won the game!";
     } else if (gameStatus === "won") {
       const winnerLabel = winner === myPlayer ? "You Won!" : "Opponent Won!";
       return winnerLabel;
@@ -420,7 +476,9 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
         <div className="text-center">
           <div className="inline-flex items-center space-x-2 px-4 py-2 bg-yellow-100 text-yellow-700 rounded-full">
             <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></span>
-            <span className="text-sm font-medium">Waiting for player to join...</span>
+            <span className="text-sm font-medium">
+              Waiting for player to join...
+            </span>
           </div>
         </div>
       </div>
@@ -483,8 +541,12 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
           <div className="mb-4">
             <div className="w-8 h-8 border-4 border-[var(--app-accent)] border-t-transparent rounded-full animate-spin mx-auto"></div>
           </div>
-          <h2 className="text-xl font-bold text-[var(--app-foreground)] mb-2">Connecting…</h2>
-          <p className="text-sm text-[var(--app-foreground-muted)]">Establishing connection to server…</p>
+          <h2 className="text-xl font-bold text-[var(--app-foreground)] mb-2">
+            Connecting…
+          </h2>
+          <p className="text-sm text-[var(--app-foreground-muted)]">
+            Establishing connection to server…
+          </p>
         </div>
       </div>
     );
@@ -495,23 +557,30 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
       {/* Game Header */}
       <div className="text-center mb-6">
         <h2 className="text-2xl font-bold text-[var(--app-foreground)] mb-2">
-          Tic Tac Toe {mode === "host" ? "(Host)" : mode === "join" ? "(Join)" : ""}
+          Tic Tac Toe{" "}
+          {mode === "host" ? "(Host)" : mode === "join" ? "(Join)" : ""}
         </h2>
         <p className="text-sm text-[var(--app-foreground-muted)] mb-2">
           Room: {roomCode} • Round {currentRound} of {totalRounds}
         </p>
         {gameWinner && (
           <p className="text-lg font-bold text-[var(--app-accent)] mb-2">
-            {gameWinner === myPlayer ? "You won the game!" : "Opponent won the game!"}
+            {gameWinner === myPlayer
+              ? "You won the game!"
+              : "Opponent won the game!"}
           </p>
         )}
-        <p className={`text-lg font-medium ${
-          gameStatus === "playing" 
-            ? isMyTurn ? "text-[var(--app-accent)]" : "text-[var(--app-foreground-muted)]"
-            : gameStatus === "won" 
-              ? "text-[var(--app-accent)]" 
-              : "text-yellow-500"
-        }`}>
+        <p
+          className={`text-lg font-medium ${
+            gameStatus === "playing"
+              ? isMyTurn
+                ? "text-[var(--app-accent)]"
+                : "text-[var(--app-foreground-muted)]"
+              : gameStatus === "won"
+                ? "text-[var(--app-accent)]"
+                : "text-yellow-500"
+          }`}
+        >
           {getStatusMessage()}
         </p>
       </div>
@@ -550,17 +619,19 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
         <div className="p-4">
           {/* Game Board */}
           <div className="grid grid-cols-3 gap-0 border-2 border-[var(--app-card-border)] border-opacity-50 rounded-lg overflow-hidden">
-            {Array(9).fill(null).map((_, index) => (
-              <div
-                key={index}
-                className={`
-                  ${index % 3 !== 2 ? 'border-r border-[var(--app-card-border)] border-opacity-30' : ''}
-                  ${index < 6 ? 'border-b border-[var(--app-card-border)] border-opacity-30' : ''}
+            {Array(9)
+              .fill(null)
+              .map((_, index) => (
+                <div
+                  key={index}
+                  className={`
+                  ${index % 3 !== 2 ? "border-r border-[var(--app-card-border)] border-opacity-30" : ""}
+                  ${index < 6 ? "border-b border-[var(--app-card-border)] border-opacity-30" : ""}
                 `}
-              >
-                {renderCell(index)}
-              </div>
-            ))}
+                >
+                  {renderCell(index)}
+                </div>
+              ))}
           </div>
         </div>
       </div>
@@ -576,7 +647,7 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
         >
           {gameWinner ? "Game Over" : "Next Round"}
         </Button>
-        
+
         {gameWinner && (
           <Button
             variant="outline"
@@ -586,9 +657,9 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
               const message = `Tic Tac Toe results:\nHost: ${roundScores.host}\nGuest: ${roundScores.guest}\nRounds: ${totalRounds}\nWinner: ${gameWinner === "X" ? "Host" : "Guest"}`;
               if (navigator.share) {
                 navigator.share({
-                  title: 'Tic Tac Toe Results',
+                  title: "Tic Tac Toe Results",
                   text: message,
-                  url: window.location.href
+                  url: window.location.href,
                 });
               } else {
                 // Fallback to copying to clipboard
@@ -604,11 +675,16 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
 
       {/* Game Stats */}
       <div className="mt-6 text-center text-sm text-[var(--app-foreground-muted)]">
-        <p>You are playing as: <span className="font-semibold text-[var(--app-accent)]">Player {myPlayer}</span></p>
+        <p>
+          You are playing as:{" "}
+          <span className="font-semibold text-[var(--app-accent)]">
+            Player {myPlayer}
+          </span>
+        </p>
         <p className="text-xs text-[var(--app-foreground-muted)] mb-1">
           Starting Player: {startingPlayer === myPlayer ? "You" : "Opponent"}
         </p>
       </div>
     </div>
   );
-} 
+}
