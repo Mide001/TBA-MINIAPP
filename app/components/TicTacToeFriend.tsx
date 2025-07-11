@@ -1,11 +1,14 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "./DemoComponents";
+import { Icon } from "./DemoComponents";
+import { io, Socket } from "socket.io-client";
 
 type Player = "X" | "O";
 type BoardState = (Player | null)[];
-type GameStatus = "playing" | "won" | "draw";
+type GameStatus = "waiting" | "playing" | "won" | "draw";
+type ConnectionStatus = "disconnected" | "hosting" | "joining" | "connected";
 
 interface TicTacToeFriendProps {
   mode: "host" | "join" | null;
@@ -13,9 +16,109 @@ interface TicTacToeFriendProps {
 
 export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
   const [board, setBoard] = useState<BoardState>(Array(9).fill(null));
-  const [currentPlayer, setCurrentPlayer] = useState<Player>("X");
-  const [gameStatus, setGameStatus] = useState<GameStatus>("playing");
+  // currentPlayer state removed - unused
+  const [gameStatus, setGameStatus] = useState<GameStatus>("waiting");
   const [winner, setWinner] = useState<Player | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("disconnected");
+  const [roomCode, setRoomCode] = useState<string>("");
+  const [inputCode, setInputCode] = useState<string>("");
+  const [isMyTurn, setIsMyTurn] = useState<boolean>(false);
+  const [myPlayer, setMyPlayer] = useState<Player>("X");
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const [isConnected, setIsConnected] = useState<boolean>(false);
+
+  // Generate a random 6-character room code
+  const generateRoomCode = useCallback(() => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let result = "";
+    for (let i = 0; i < 6; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  }, []);
+
+  // Initialize Socket.IO connection
+  useEffect(() => {
+    const newSocket = io("https://tba-miniapp-server-production.up.railway.app", {
+      transports: ["websocket", "polling"],
+    });
+
+    newSocket.on("connect", () => {
+      console.log("Connected to Socket.IO server");
+      setIsConnected(true);
+      setSocket(newSocket);
+    });
+
+    newSocket.on("disconnect", () => {
+      console.log("Disconnected from Socket.IO server");
+      setIsConnected(false);
+    });
+
+    newSocket.on("room-created", (room) => {
+      console.log("Room created:", room);
+      setConnectionStatus("hosting");
+      setGameStatus("waiting");
+    });
+
+    newSocket.on("player-joined", (room) => {
+      console.log("Player joined:", room);
+      setBoard(room.board);
+      setGameStatus(room.gameStatus);
+      setConnectionStatus("connected");
+      setIsMyTurn(room.currentPlayer === myPlayer);
+    });
+
+    newSocket.on("move-made", (room) => {
+      console.log("Move made:", room);
+      setBoard(room.board);
+      setGameStatus(room.gameStatus);
+      setWinner(room.winner || null);
+      setIsMyTurn(room.currentPlayer === myPlayer);
+    });
+
+    newSocket.on("game-reset", (room) => {
+      console.log("Game reset:", room);
+      setBoard(room.board);
+      setGameStatus(room.gameStatus);
+      setWinner(null);
+      setIsMyTurn(room.currentPlayer === myPlayer);
+    });
+
+    newSocket.on("player-left", (room) => {
+      console.log("Player left:", room);
+      setGameStatus("waiting");
+      setConnectionStatus("hosting");
+    });
+
+    newSocket.on("room-error", (error) => {
+      console.error("Room error:", error);
+      alert(error.message);
+    });
+
+    newSocket.on("move-error", (error) => {
+      console.error("Move error:", error);
+      alert(error.message);
+    });
+
+    return () => {
+      newSocket.close();
+    };
+  }, [myPlayer]);
+
+  // Initialize hosting or joining
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    if (mode === "host") {
+      const code = generateRoomCode();
+      setRoomCode(code);
+      setMyPlayer("X");
+      socket.emit("create-room", code);
+    } else if (mode === "join") {
+      setConnectionStatus("joining");
+      setMyPlayer("O");
+    }
+  }, [mode, socket, isConnected, generateRoomCode]);
 
   // Winning combinations
   const winningCombos = [
@@ -24,50 +127,39 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
     [0, 4, 8], [2, 4, 6] // Diagonals
   ];
 
-  const checkWinner = useCallback((boardState: BoardState): Player | null => {
-    for (const combo of winningCombos) {
-      const [a, b, c] = combo;
-      if (boardState[a] && boardState[a] === boardState[b] && boardState[a] === boardState[c]) {
-        return boardState[a];
-      }
-    }
-    return null;
-  }, []);
+  // checkWinner function removed - unused
 
-  const checkDraw = useCallback((boardState: BoardState): boolean => {
-    return boardState.every(cell => cell !== null);
-  }, []);
+  // checkDraw function removed - unused
 
   const handleCellClick = useCallback((index: number) => {
-    if (board[index] || gameStatus !== "playing") return;
+    if (board[index] || gameStatus !== "playing" || !isMyTurn || !socket) return;
 
-    const newBoard = [...board];
-    newBoard[index] = currentPlayer;
-    setBoard(newBoard);
+    socket.emit("make-move", {
+      roomId: roomCode,
+      index,
+      player: myPlayer,
+    });
+  }, [board, gameStatus, isMyTurn, socket, roomCode, myPlayer]);
 
-    const winner = checkWinner(newBoard);
-    if (winner) {
-      setWinner(winner);
-      setGameStatus("won");
-    } else if (checkDraw(newBoard)) {
-      setGameStatus("draw");
-    } else {
-      setCurrentPlayer(currentPlayer === "X" ? "O" : "X");
+  const handleJoinGame = useCallback(() => {
+    if (inputCode.length === 6 && socket) {
+      setRoomCode(inputCode);
+      socket.emit("join-room", inputCode);
     }
-  }, [board, currentPlayer, gameStatus, checkWinner, checkDraw]);
+  }, [inputCode, socket]);
+
+  const copyRoomCode = useCallback(() => {
+    navigator.clipboard.writeText(roomCode);
+  }, [roomCode]);
 
   const resetGame = useCallback(() => {
-    setBoard(Array(9).fill(null));
-    setCurrentPlayer("X");
-    setGameStatus("playing");
-    setWinner(null);
-  }, []);
+    if (socket) {
+      socket.emit("reset-game", roomCode);
+    }
+  }, [socket, roomCode]);
 
   const renderCell = (index: number) => {
     const value = board[index];
-    const isWinningCell = winner && winningCombos.some(combo => 
-      combo.includes(index) && combo.every(i => board[i] === winner)
-    );
 
     // Find the winning combination for line positioning
     const winningCombo = winner ? winningCombos.find(combo => 
@@ -109,10 +201,10 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
           flex items-center justify-center 
           text-3xl sm:text-4xl font-bold 
           transition-all duration-200 
-          cursor-pointer
+          ${!value && gameStatus === "playing" && isMyTurn ? 'cursor-pointer' : 'cursor-not-allowed'}
           relative
           ${value === 'X' ? 'text-blue-500' : value === 'O' ? 'text-red-500' : ''}
-          ${!value && gameStatus === "playing" ? 'hover:bg-[var(--app-accent-light)] hover:bg-opacity-10' : ''}
+          ${!value && gameStatus === "playing" && isMyTurn ? 'hover:bg-[var(--app-accent-light)] hover:bg-opacity-10' : ''}
           ${getLineClass()}
         `}
       >
@@ -123,14 +215,116 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
 
   const getStatusMessage = () => {
     if (gameStatus === "won") {
-      return `Player ${winner} wins!`;
+      const winnerLabel = winner === myPlayer ? "You Won!" : "Opponent Won!";
+      return winnerLabel;
     } else if (gameStatus === "draw") {
       return "It's a draw!";
+    } else if (gameStatus === "waiting") {
+      if (connectionStatus === "hosting") {
+        return "Waiting for player to join...";
+      } else if (connectionStatus === "joining") {
+        return "Enter room code to join";
+      } else {
+        return "Connected! Waiting for game to start...";
+      }
     } else {
-      return `Player ${currentPlayer}'s turn`;
+      return isMyTurn ? "Your turn" : "Opponent's turn";
     }
   };
 
+  // Render room code section for host
+  if (connectionStatus === "hosting" && gameStatus === "waiting") {
+    return (
+      <div className="w-full max-w-sm mx-auto p-4">
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold text-[var(--app-foreground)] mb-2">
+            Host Game
+          </h2>
+          <p className="text-sm text-[var(--app-foreground-muted)] mb-4">
+            Share this code with your friend
+          </p>
+        </div>
+
+        {/* Room Code Display */}
+        <div className="bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg p-6 mb-6">
+          <div className="text-center">
+            <h3 className="text-sm font-semibold text-[var(--app-foreground-muted)] mb-3 uppercase tracking-wide">
+              Room Code
+            </h3>
+            <div className="text-4xl font-bold text-[var(--app-accent)] mb-4 tracking-wider">
+              {roomCode}
+            </div>
+            <Button
+              variant="outline"
+              size="md"
+              onClick={copyRoomCode}
+              className="w-full"
+            >
+              <Icon name="check" size="sm" className="mr-2" />
+              Copy Code
+            </Button>
+          </div>
+        </div>
+
+        {/* Status */}
+        <div className="text-center">
+          <div className="inline-flex items-center space-x-2 px-4 py-2 bg-yellow-100 text-yellow-700 rounded-full">
+            <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></span>
+            <span className="text-sm font-medium">Waiting for player to join...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Render join game section
+  if (connectionStatus === "joining") {
+    return (
+      <div className="w-full max-w-sm mx-auto p-4">
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold text-[var(--app-foreground)] mb-2">
+            Join Game
+          </h2>
+          <p className="text-sm text-[var(--app-foreground-muted)] mb-4">
+            Enter the room code from your friend
+          </p>
+        </div>
+
+        {/* Room Code Input */}
+        <div className="bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg p-6 mb-6">
+          <div className="text-center">
+            <h3 className="text-sm font-semibold text-[var(--app-foreground-muted)] mb-3 uppercase tracking-wide">
+              Room Code
+            </h3>
+            <input
+              type="text"
+              value={inputCode}
+              onChange={(e) => setInputCode(e.target.value.toUpperCase())}
+              placeholder="Enter 6-digit code"
+              maxLength={6}
+              className="w-full text-center text-2xl font-bold text-[var(--app-accent)] tracking-wider bg-transparent border-b-2 border-[var(--app-card-border)] focus:border-[var(--app-accent)] outline-none py-2 mb-4"
+            />
+            <Button
+              variant="primary"
+              size="md"
+              onClick={handleJoinGame}
+              disabled={inputCode.length !== 6}
+              className="w-full"
+            >
+              Join Game
+            </Button>
+          </div>
+        </div>
+
+        {/* Instructions */}
+        <div className="text-center text-sm text-[var(--app-foreground-muted)]">
+          <p>Ask your friend for the 6-digit room code</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Render the actual game board
   return (
     <div className="w-full max-w-sm mx-auto p-4">
       {/* Game Header */}
@@ -139,11 +333,11 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
           Tic Tac Toe {mode === "host" ? "(Host)" : mode === "join" ? "(Join)" : ""}
         </h2>
         <p className="text-sm text-[var(--app-foreground-muted)] mb-2">
-          {mode === "host" ? "Create a game room for your friend" : mode === "join" ? "Join your friend's game room" : "Pass and play with a friend"}
+          Room: {roomCode}
         </p>
         <p className={`text-lg font-medium ${
           gameStatus === "playing" 
-            ? "text-[var(--app-foreground-muted)]" 
+            ? isMyTurn ? "text-[var(--app-accent)]" : "text-[var(--app-foreground-muted)]"
             : gameStatus === "won" 
               ? "text-[var(--app-accent)]" 
               : "text-yellow-500"
@@ -190,7 +384,9 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
             onClick={() => {
               // Share game result
               const message = gameStatus === "won" 
-                ? `Player ${winner} just won our Tic Tac Toe game! 🎉`
+                ? winner === myPlayer 
+                  ? "I just won our Tic Tac Toe game! 🎉"
+                  : "My opponent just won our Tic Tac Toe game! 🤖"
                 : "We just played a draw in Tic Tac Toe! 🤝";
               
               if (navigator.share) {
@@ -213,8 +409,7 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
 
       {/* Game Stats */}
       <div className="mt-6 text-center text-sm text-[var(--app-foreground-muted)]">
-        <p>Pass the device to your friend after each turn</p>
-        <p className="mt-1">Player X goes first</p>
+        <p>You are playing as: <span className="font-semibold text-[var(--app-accent)]">Player {myPlayer}</span></p>
       </div>
     </div>
   );
