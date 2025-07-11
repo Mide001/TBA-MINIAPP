@@ -671,7 +671,7 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
           size="md"
           onClick={resetGame}
           className="flex-1 sm:flex-none"
-          disabled={!!gameWinner || currentRound > totalRounds}
+          disabled={!!gameWinner || currentRound > totalRounds || gameStatus === "playing"}
         >
           {gameWinner ? "Game Over" : "Next Round"}
         </Button>
