@@ -15,6 +15,7 @@ export default function App() {
   const { setFrameReady, isFrameReady } = useMiniKit();
   const [gameMode, setGameMode] = useState<"computer" | "friend" | null>(null);
   const [friendMode, setFriendMode] = useState<"host" | "join" | null>(null);
+  const [rounds, setRounds] = useState<number>(3);
 
   const openUrl = useOpenUrl();
 
@@ -25,9 +26,12 @@ export default function App() {
   }, [setFrameReady, isFrameReady]);
 
   const handleGameModeSelect = useCallback(
-    (mode: "computer" | "friend" | null, mode2?: "host" | "join" | null) => {
+    (mode: "computer" | "friend" | null, mode2?: "host" | "join" | null, roundsParam?: number) => {
       setGameMode(mode);
       setFriendMode(mode2 || null);
+      if (roundsParam) {
+        setRounds(roundsParam);
+      }
     },
     [],
   );
@@ -43,7 +47,7 @@ export default function App() {
           ) : gameMode === "computer" ? (
             <TicTacToe />
           ) : (
-            <TicTacToeFriend mode={friendMode} />
+            <TicTacToeFriend mode={friendMode} rounds={rounds} />
           )}
         </main>
 
