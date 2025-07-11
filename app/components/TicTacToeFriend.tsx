@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Button } from "./DemoComponents";
 import { Icon } from "./DemoComponents";
 import { io, Socket } from "socket.io-client";
@@ -40,6 +40,26 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
     useState<boolean>(false);
   // Add startingPlayer state
   const [startingPlayer, setStartingPlayer] = useState<Player>("X");
+  const moveSoundRef = useRef<HTMLAudioElement | null>(null);
+
+  // Play sound function that doesn't block UI
+  const playMoveSound = useCallback(() => {
+    if (moveSoundRef.current) {
+      try {
+        // Use requestAnimationFrame to ensure it doesn't block the UI
+        requestAnimationFrame(() => {
+          if (moveSoundRef.current) {
+            moveSoundRef.current.currentTime = 0;
+            moveSoundRef.current.play().catch((error) => {
+              console.warn("Failed to play sound:", error);
+            });
+          }
+        });
+      } catch (error) {
+        console.warn("Error playing sound:", error);
+      }
+    }
+  }, []);
 
   // Generate a random 6-character room code
   const generateRoomCode = useCallback(() => {
@@ -114,6 +134,8 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
 
     newSocket.on("move-made", (room) => {
       console.log("Move made:", room);
+      // Play sound using the optimized function
+      playMoveSound();
       setBoard(room.board);
       setGameStatus(room.gameStatus);
       setWinner(room.winner || null);
@@ -175,7 +197,27 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
     return () => {
       newSocket.close();
     };
-  }, [myPlayer]);
+  }, [myPlayer, playMoveSound]);
+
+  // Initialize audio element
+  useEffect(() => {
+    if (moveSoundRef.current) {
+      const audio = moveSoundRef.current;
+      
+      const handleError = () => {
+        console.warn("Audio failed to load");
+      };
+      
+      audio.addEventListener('error', handleError);
+      
+      // Try to load the audio
+      audio.load();
+      
+      return () => {
+        audio.removeEventListener('error', handleError);
+      };
+    }
+  }, []);
 
   // Initialize hosting or joining
   useEffect(() => {
@@ -671,6 +713,11 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
           Starting Player: {startingPlayer === myPlayer ? "You" : "Opponent"}
         </p>
       </div>
+      <audio 
+        ref={moveSoundRef} 
+        src="/move.mp3" 
+        preload="auto"
+      />
     </div>
   );
 }
