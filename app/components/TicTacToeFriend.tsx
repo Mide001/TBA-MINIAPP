@@ -27,12 +27,7 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
   const [myPlayer, setMyPlayer] = useState<Player>("X");
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState<boolean>(false);
-  // Scoreboard state
-  const [score, setScore] = useState<{
-    host: number;
-    guest: number;
-    draws: number;
-  }>({ host: 0, guest: 0, draws: 0 });
+  // Scoreboard state removed - using roundScores instead
   // Rounds system state
   const [totalRounds, setTotalRounds] = useState<number>(3);
   const [currentRound, setCurrentRound] = useState<number>(1);
@@ -134,16 +129,7 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
       if (room.gameWinner) {
         setGameWinner(room.gameWinner);
       }
-      // Update score if game ended
-      if (room.gameStatus === "won") {
-        if (room.winner === "X") {
-          setScore((prev) => ({ ...prev, host: prev.host + 1 }));
-        } else if (room.winner === "O") {
-          setScore((prev) => ({ ...prev, guest: prev.guest + 1 }));
-        }
-      } else if (room.gameStatus === "draw") {
-        setScore((prev) => ({ ...prev, draws: prev.draws + 1 }));
-      }
+      // Score updates handled by backend roundScores
       if (room.startingPlayer) {
         setStartingPlayer(room.startingPlayer);
       }
