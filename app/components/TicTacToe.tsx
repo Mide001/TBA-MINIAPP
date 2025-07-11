@@ -58,7 +58,7 @@ export function TicTacToe() {
       .filter((index): index is number => index !== null);
   };
 
-  const minimax = (
+  const minimax = useCallback((
     squares: Player[],
     depth: number,
     isMaximizing: boolean,
@@ -87,7 +87,7 @@ export function TicTacToe() {
       }
       return bestScore;
     }
-  };
+  }, []);
 
   const getAIMove = useCallback((squares: Player[]): number => {
     const emptySquares = getEmptySquares(squares);
