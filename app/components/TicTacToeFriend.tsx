@@ -336,7 +336,21 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
     );
   }
 
-  // Render the actual game board
+  // Render the actual game board or connecting state
+  if (connectionStatus === "disconnected") {
+    // Show a styled connecting state
+    return (
+      <div className="w-full max-w-sm mx-auto p-4 flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="mb-4">
+            <div className="w-8 h-8 border-4 border-[var(--app-accent)] border-t-transparent rounded-full animate-spin mx-auto"></div>
+          </div>
+          <h2 className="text-xl font-bold text-[var(--app-foreground)] mb-2">Connecting…</h2>
+          <p className="text-sm text-[var(--app-foreground-muted)]">Establishing connection to server…</p>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="w-full max-w-sm mx-auto p-4">
       {/* Game Header */}
