@@ -26,6 +26,8 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
   const [myPlayer, setMyPlayer] = useState<Player>("X");
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState<boolean>(false);
+  // Scoreboard state
+  const [score, setScore] = useState<{ host: number; guest: number; draws: number }>({ host: 0, guest: 0, draws: 0 });
 
   // Generate a random 6-character room code
   const generateRoomCode = useCallback(() => {
@@ -74,6 +76,16 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
       setGameStatus(room.gameStatus);
       setWinner(room.winner || null);
       setIsMyTurn(room.currentPlayer === myPlayer);
+      // Update score if game ended
+      if (room.gameStatus === "won") {
+        if (room.winner === "X") {
+          setScore((prev) => ({ ...prev, host: prev.host + 1 }));
+        } else if (room.winner === "O") {
+          setScore((prev) => ({ ...prev, guest: prev.guest + 1 }));
+        }
+      } else if (room.gameStatus === "draw") {
+        setScore((prev) => ({ ...prev, draws: prev.draws + 1 }));
+      }
     });
 
     newSocket.on("game-reset", (room) => {
@@ -346,6 +358,43 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
         </p>
       </div>
 
+      {/* Scoreboard */}
+      <div className="mb-4">
+        <div className="bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg p-2">
+          <div className="text-center mb-1">
+            <h3 className="text-xs font-semibold text-[var(--app-foreground-muted)] uppercase tracking-wide">
+              Score
+            </h3>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="text-center">
+              <div className="text-lg font-bold text-blue-500">
+                {score.host}
+              </div>
+              <div className="text-xs text-[var(--app-foreground-muted)]">
+                Host
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-red-500">
+                {score.guest}
+              </div>
+              <div className="text-xs text-[var(--app-foreground-muted)]">
+                Guest
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-gray-500">
+                {score.draws}
+              </div>
+              <div className="text-xs text-[var(--app-foreground-muted)]">
+                Draws
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Main Game Board Container */}
       <div className="flex justify-center items-center mb-6">
         <div className="p-4">
@@ -382,16 +431,11 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
             variant="outline"
             size="md"
             onClick={() => {
-              // Share game result
-              const message = gameStatus === "won" 
-                ? winner === myPlayer 
-                  ? "I just won our Tic Tac Toe game! 🎉"
-                  : "My opponent just won our Tic Tac Toe game! 🤖"
-                : "We just played a draw in Tic Tac Toe! 🤝";
-              
+              // Share total results
+              const message = `Tic Tac Toe results:\nHost: ${score.host}\nGuest: ${score.guest}\nDraws: ${score.draws}`;
               if (navigator.share) {
                 navigator.share({
-                  title: 'Tic Tac Toe Result',
+                  title: 'Tic Tac Toe Results',
                   text: message,
                   url: window.location.href
                 });
