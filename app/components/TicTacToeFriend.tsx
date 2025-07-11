@@ -278,12 +278,12 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
 
   const resetGame = useCallback(() => {
     // Additional validation to prevent unauthorized resets
-    if (!socket || !winner || currentRound >= totalRounds || gameStatus === "playing") {
+    if (!socket || currentRound >= totalRounds || gameStatus === "playing" || (gameStatus !== "won" && gameStatus !== "draw")) {
       console.warn("Reset game blocked - invalid conditions");
       return;
     }
     socket.emit("reset-game", roomCode);
-  }, [socket, roomCode, winner, currentRound, totalRounds, gameStatus]);
+  }, [socket, roomCode, currentRound, totalRounds, gameStatus]);
 
   const createRoom = useCallback(() => {
     if (socket) {
@@ -682,8 +682,7 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
             gameStatus === "playing" || 
             gameStatus === "waiting" ||
             !isConnected ||
-            !winner ||
-            currentRound > totalRounds
+            (gameStatus !== "won" && gameStatus !== "draw")
           }
         >
           {gameWinner ? "Game Over" : "Next Round"}
