@@ -113,8 +113,6 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
 
     newSocket.on("player-joined", (room) => {
       console.log("Player joined:", room);
-      console.log("Joining player:", myPlayer, "Room current player:", room.currentPlayer);
-      console.log("Initial game status:", room.gameStatus, "Initial winner:", room.winner);
       setBoard(room.board);
       setGameStatus(room.gameStatus);
       setWinner(room.winner || null);
@@ -137,8 +135,6 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
 
     newSocket.on("move-made", (room) => {
       console.log("Move made:", room);
-      console.log("Current player:", myPlayer, "Room current player:", room.currentPlayer);
-      console.log("Game status:", room.gameStatus, "Winner:", room.winner);
       // Play sound using the optimized function
       playMoveSound();
       setBoard(room.board);
@@ -281,10 +277,13 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
   }, [roomCode]);
 
   const resetGame = useCallback(() => {
-    if (socket) {
-      socket.emit("reset-game", roomCode);
+    // Additional validation to prevent unauthorized resets
+    if (!socket || !winner || currentRound >= totalRounds || gameStatus === "playing") {
+      console.warn("Reset game blocked - invalid conditions");
+      return;
     }
-  }, [socket, roomCode]);
+    socket.emit("reset-game", roomCode);
+  }, [socket, roomCode, winner, currentRound, totalRounds, gameStatus]);
 
   const createRoom = useCallback(() => {
     if (socket) {
@@ -596,10 +595,7 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
         <p className="text-sm text-[var(--app-foreground-muted)] mb-2">
           Room: {roomCode} • Round {currentRound} of {totalRounds}
         </p>
-        {/* Debug info - remove after testing */}
-        <p className="text-xs text-red-500 mb-1">
-          Debug: gameStatus={gameStatus}, isConnected={isConnected.toString()}, gameWinner={gameWinner?.toString() || 'null'}, winner={winner?.toString() || 'null'}, mode={mode}
-        </p>
+
         {gameWinner && (
           <p className="text-lg font-bold text-[var(--app-accent)] mb-2">
             {gameWinner === myPlayer
@@ -682,11 +678,12 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
           className="flex-1 sm:flex-none"
           disabled={
             !!gameWinner || 
-            currentRound > totalRounds || 
+            currentRound >= totalRounds || 
             gameStatus === "playing" || 
             gameStatus === "waiting" ||
             !isConnected ||
-            !winner
+            !winner ||
+            currentRound > totalRounds
           }
         >
           {gameWinner ? "Game Over" : "Next Round"}
