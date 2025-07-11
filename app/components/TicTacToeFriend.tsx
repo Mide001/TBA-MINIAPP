@@ -591,6 +591,10 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
         <p className="text-sm text-[var(--app-foreground-muted)] mb-2">
           Room: {roomCode} • Round {currentRound} of {totalRounds}
         </p>
+        {/* Debug info - remove after testing */}
+        <p className="text-xs text-red-500 mb-1">
+          Debug: gameStatus={gameStatus}, isConnected={isConnected.toString()}, gameWinner={gameWinner?.toString() || 'null'}
+        </p>
         {gameWinner && (
           <p className="text-lg font-bold text-[var(--app-accent)] mb-2">
             {gameWinner === myPlayer
@@ -677,7 +681,7 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
             gameStatus === "playing" || 
             gameStatus === "waiting" ||
             !isConnected ||
-            (gameStatus !== "won" && gameStatus !== "draw")
+            !winner
           }
         >
           {gameWinner ? "Game Over" : "Next Round"}
