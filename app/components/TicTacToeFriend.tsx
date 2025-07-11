@@ -7,21 +7,19 @@ import { io, Socket } from "socket.io-client";
 
 type Player = "X" | "O";
 type BoardState = (Player | null)[];
-type GameStatus = "waiting" | "playing" | "won" | "draw";
+type GameStatus = "waiting" | "playing" | "won" | "draw" | "game-over";
 type ConnectionStatus = "disconnected" | "hosting" | "joining" | "connected";
 
 interface TicTacToeFriendProps {
   mode: "host" | "join" | null;
-  rounds?: number; // Make rounds optional for guests
 }
 
-export function TicTacToeFriend({ mode, rounds }: TicTacToeFriendProps) {
+export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
   const [board, setBoard] = useState<BoardState>(Array(9).fill(null));
   // currentPlayer state removed - unused
   const [gameStatus, setGameStatus] = useState<GameStatus>("waiting");
   const [winner, setWinner] = useState<Player | null>(null);
-  const [connectionStatus, setConnectionStatus] =
-    useState<ConnectionStatus>("disconnected");
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("disconnected");
   const [roomCode, setRoomCode] = useState<string>("");
   const [inputCode, setInputCode] = useState<string>("");
   const [isMyTurn, setIsMyTurn] = useState<boolean>(false);
@@ -29,25 +27,13 @@ export function TicTacToeFriend({ mode, rounds }: TicTacToeFriendProps) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   // Scoreboard state
-  const [score, setScore] = useState<{
-    host: number;
-    guest: number;
-    draws: number;
-  }>({ host: 0, guest: 0, draws: 0 });
-  // Match state for rounds
-  const [matchState, setMatchState] = useState<{
-    currentRound: number;
-    hostWins: number;
-    guestWins: number;
-    matchWinner: Player | null;
-    totalRounds: number; // Add totalRounds to match state
-  }>({
-    currentRound: 1,
-    hostWins: 0,
-    guestWins: 0,
-    matchWinner: null,
-    totalRounds: rounds || 3, // Default to 3 if not provided
-  });
+  const [score, setScore] = useState<{ host: number; guest: number; draws: number }>({ host: 0, guest: 0, draws: 0 });
+  // Rounds system state
+  const [totalRounds, setTotalRounds] = useState<number>(3);
+  const [currentRound, setCurrentRound] = useState<number>(1);
+  const [roundScores, setRoundScores] = useState<{ host: number; guest: number }>({ host: 0, guest: 0 });
+  const [gameWinner, setGameWinner] = useState<Player | undefined>(undefined);
+  const [showRoundsSelection, setShowRoundsSelection] = useState<boolean>(false);
 
   // Generate a random 6-character room code
   const generateRoomCode = useCallback(() => {
@@ -62,7 +48,7 @@ export function TicTacToeFriend({ mode, rounds }: TicTacToeFriendProps) {
   // Initialize Socket.IO connection
   useEffect(() => {
     // https://tba-miniapp-server-production.up.railway.app
-    const newSocket = io("https://tba-miniapp-server-production.up.railway.app", {
+    const newSocket = io("http://localhost:3001", {
       transports: ["websocket", "polling"],
     });
 
@@ -81,6 +67,16 @@ export function TicTacToeFriend({ mode, rounds }: TicTacToeFriendProps) {
       console.log("Room created:", room);
       setConnectionStatus("hosting");
       setGameStatus("waiting");
+      // Initialize rounds data from room
+      if (room.totalRounds) {
+        setTotalRounds(room.totalRounds);
+      }
+      if (room.roundScores) {
+        setRoundScores(room.roundScores);
+      }
+      if (room.currentRound) {
+        setCurrentRound(room.currentRound);
+      }
     });
 
     newSocket.on("player-joined", (room) => {
@@ -89,12 +85,15 @@ export function TicTacToeFriend({ mode, rounds }: TicTacToeFriendProps) {
       setGameStatus(room.gameStatus);
       setConnectionStatus("connected");
       setIsMyTurn(room.currentPlayer === myPlayer);
-      // Update match state with room data (for guests)
+      // Initialize rounds data from room
       if (room.totalRounds) {
-        setMatchState((prev) => ({
-          ...prev,
-          totalRounds: room.totalRounds,
-        }));
+        setTotalRounds(room.totalRounds);
+      }
+      if (room.roundScores) {
+        setRoundScores(room.roundScores);
+      }
+      if (room.currentRound) {
+        setCurrentRound(room.currentRound);
       }
     });
 
@@ -104,32 +103,23 @@ export function TicTacToeFriend({ mode, rounds }: TicTacToeFriendProps) {
       setGameStatus(room.gameStatus);
       setWinner(room.winner || null);
       setIsMyTurn(room.currentPlayer === myPlayer);
+      // Update round scores
+      if (room.roundScores) {
+        setRoundScores(room.roundScores);
+      }
+      if (room.currentRound) {
+        setCurrentRound(room.currentRound);
+      }
+      // Check for game winner
+      if (room.gameWinner) {
+        setGameWinner(room.gameWinner);
+      }
       // Update score if game ended
       if (room.gameStatus === "won") {
         if (room.winner === "X") {
           setScore((prev) => ({ ...prev, host: prev.host + 1 }));
-          // Update match state
-          setMatchState((prev) => {
-            const matchWinner =
-              prev.hostWins + 1 >= Math.ceil(prev.totalRounds / 2) ? "X" : null;
-            return {
-              ...prev,
-              hostWins: prev.hostWins + 1,
-              matchWinner,
-            };
-          });
         } else if (room.winner === "O") {
           setScore((prev) => ({ ...prev, guest: prev.guest + 1 }));
-          // Update match state
-          setMatchState((prev) => {
-            const matchWinner =
-              prev.guestWins + 1 >= Math.ceil(prev.totalRounds / 2) ? "O" : null;
-            return {
-              ...prev,
-              guestWins: prev.guestWins + 1,
-              matchWinner,
-            };
-          });
         }
       } else if (room.gameStatus === "draw") {
         setScore((prev) => ({ ...prev, draws: prev.draws + 1 }));
@@ -142,12 +132,15 @@ export function TicTacToeFriend({ mode, rounds }: TicTacToeFriendProps) {
       setGameStatus(room.gameStatus);
       setWinner(null);
       setIsMyTurn(room.currentPlayer === myPlayer);
-      // Increment round if match is not complete
-      if (!matchState.matchWinner) {
-        setMatchState((prev) => ({
-          ...prev,
-          currentRound: prev.currentRound + 1,
-        }));
+      // Update rounds data
+      if (room.currentRound) {
+        setCurrentRound(room.currentRound);
+      }
+      if (room.roundScores) {
+        setRoundScores(room.roundScores);
+      }
+      if (room.gameWinner) {
+        setGameWinner(room.gameWinner);
       }
     });
 
@@ -180,42 +173,33 @@ export function TicTacToeFriend({ mode, rounds }: TicTacToeFriendProps) {
       const code = generateRoomCode();
       setRoomCode(code);
       setMyPlayer("X");
-      socket.emit("create-room", code, rounds);
+      setShowRoundsSelection(true);
     } else if (mode === "join") {
       setConnectionStatus("joining");
       setMyPlayer("O");
     }
-  }, [mode, socket, isConnected, generateRoomCode, rounds]);
+  }, [mode, socket, isConnected, generateRoomCode]);
 
   // Winning combinations
   const winningCombos = [
-    [0, 1, 2],
-    [3, 4, 5],
-    [6, 7, 8], // Rows
-    [0, 3, 6],
-    [1, 4, 7],
-    [2, 5, 8], // Columns
-    [0, 4, 8],
-    [2, 4, 6], // Diagonals
+    [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
+    [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
+    [0, 4, 8], [2, 4, 6] // Diagonals
   ];
 
   // checkWinner function removed - unused
 
   // checkDraw function removed - unused
 
-  const handleCellClick = useCallback(
-    (index: number) => {
-      if (board[index] || gameStatus !== "playing" || !isMyTurn || !socket)
-        return;
+  const handleCellClick = useCallback((index: number) => {
+    if (board[index] || gameStatus !== "playing" || !isMyTurn || !socket) return;
 
-      socket.emit("make-move", {
-        roomId: roomCode,
-        index,
-        player: myPlayer,
-      });
-    },
-    [board, gameStatus, isMyTurn, socket, roomCode, myPlayer],
-  );
+    socket.emit("make-move", {
+      roomId: roomCode,
+      index,
+      player: myPlayer,
+    });
+  }, [board, gameStatus, isMyTurn, socket, roomCode, myPlayer]);
 
   const handleJoinGame = useCallback(() => {
     if (inputCode.length === 6 && socket) {
@@ -234,78 +218,45 @@ export function TicTacToeFriend({ mode, rounds }: TicTacToeFriendProps) {
     }
   }, [socket, roomCode]);
 
-  // Update the useEffect for game reset to include matchState.matchWinner in the dependency array
-  useEffect(() => {
+  const createRoom = useCallback(() => {
     if (socket) {
-      socket.emit("reset-game", roomCode);
+      socket.emit("create-room", { roomId: roomCode, totalRounds });
+      setShowRoundsSelection(false);
     }
-  }, [socket, isConnected, matchState.matchWinner]);
+  }, [socket, roomCode, totalRounds]);
 
   const renderCell = (index: number) => {
     const value = board[index];
 
     // Find the winning combination for line positioning
-    const winningCombo = winner
-      ? winningCombos.find((combo) => combo.every((i) => board[i] === winner))
-      : null;
+    const winningCombo = winner ? winningCombos.find(combo => 
+      combo.every(i => board[i] === winner)
+    ) : null;
 
     const getLineClass = () => {
-      if (!winningCombo || !winningCombo.includes(index)) return "";
-
-      const lineColor =
-        winner === "X" ? "after:bg-blue-500" : "after:bg-red-500";
-
+      if (!winningCombo || !winningCombo.includes(index)) return '';
+      
+      const lineColor = winner === 'X' ? 'after:bg-blue-500' : 'after:bg-red-500';
+      
       // Determine line direction based on winning combination
-      if (
-        winningCombo.includes(0) &&
-        winningCombo.includes(1) &&
-        winningCombo.includes(2)
-      ) {
+      if (winningCombo.includes(0) && winningCombo.includes(1) && winningCombo.includes(2)) {
         return `after:content-[""] after:absolute after:top-1/2 after:left-2 after:right-2 after:h-0.5 ${lineColor} after:transform after:-translate-y-1/2`; // Horizontal top row
-      } else if (
-        winningCombo.includes(3) &&
-        winningCombo.includes(4) &&
-        winningCombo.includes(5)
-      ) {
+      } else if (winningCombo.includes(3) && winningCombo.includes(4) && winningCombo.includes(5)) {
         return `after:content-[""] after:absolute after:top-1/2 after:left-2 after:right-2 after:h-0.5 ${lineColor} after:transform after:-translate-y-1/2`; // Horizontal middle row
-      } else if (
-        winningCombo.includes(6) &&
-        winningCombo.includes(7) &&
-        winningCombo.includes(8)
-      ) {
+      } else if (winningCombo.includes(6) && winningCombo.includes(7) && winningCombo.includes(8)) {
         return `after:content-[""] after:absolute after:top-1/2 after:left-2 after:right-2 after:h-0.5 ${lineColor} after:transform after:-translate-y-1/2`; // Horizontal bottom row
-      } else if (
-        winningCombo.includes(0) &&
-        winningCombo.includes(3) &&
-        winningCombo.includes(6)
-      ) {
+      } else if (winningCombo.includes(0) && winningCombo.includes(3) && winningCombo.includes(6)) {
         return `after:content-[""] after:absolute after:left-1/2 after:top-2 after:bottom-2 after:w-0.5 ${lineColor} after:transform after:-translate-x-1/2`; // Vertical left column
-      } else if (
-        winningCombo.includes(1) &&
-        winningCombo.includes(4) &&
-        winningCombo.includes(7)
-      ) {
+      } else if (winningCombo.includes(1) && winningCombo.includes(4) && winningCombo.includes(7)) {
         return `after:content-[""] after:absolute after:left-1/2 after:top-2 after:bottom-2 after:w-0.5 ${lineColor} after:transform after:-translate-x-1/2`; // Vertical middle column
-      } else if (
-        winningCombo.includes(2) &&
-        winningCombo.includes(5) &&
-        winningCombo.includes(8)
-      ) {
+      } else if (winningCombo.includes(2) && winningCombo.includes(5) && winningCombo.includes(8)) {
         return `after:content-[""] after:absolute after:left-1/2 after:top-2 after:bottom-2 after:w-0.5 ${lineColor} after:transform after:-translate-x-1/2`; // Vertical right column
-      } else if (
-        winningCombo.includes(0) &&
-        winningCombo.includes(4) &&
-        winningCombo.includes(8)
-      ) {
+      } else if (winningCombo.includes(0) && winningCombo.includes(4) && winningCombo.includes(8)) {
         return `after:content-[""] after:absolute after:top-1/2 after:left-4 after:right-4 after:h-0.5 ${lineColor} after:transform after:rotate-45 after:scale-x-150`; // Diagonal top-left to bottom-right
-      } else if (
-        winningCombo.includes(2) &&
-        winningCombo.includes(4) &&
-        winningCombo.includes(6)
-      ) {
+      } else if (winningCombo.includes(2) && winningCombo.includes(4) && winningCombo.includes(6)) {
         return `after:content-[""] after:absolute after:top-1/2 after:left-4 after:right-4 after:h-0.5 ${lineColor} after:transform after:-rotate-45 after:scale-x-150`; // Diagonal top-right to bottom-left
       }
-      return "";
+      return '';
     };
 
     return (
@@ -317,10 +268,10 @@ export function TicTacToeFriend({ mode, rounds }: TicTacToeFriendProps) {
           flex items-center justify-center 
           text-3xl sm:text-4xl font-bold 
           transition-all duration-200 
-          ${!value && gameStatus === "playing" && isMyTurn ? "cursor-pointer" : "cursor-not-allowed"}
+          ${!value && gameStatus === "playing" && isMyTurn ? 'cursor-pointer' : 'cursor-not-allowed'}
           relative
-          ${value === "X" ? "text-blue-500" : value === "O" ? "text-red-500" : ""}
-          ${!value && gameStatus === "playing" && isMyTurn ? "hover:bg-[var(--app-accent-light)] hover:bg-opacity-10" : ""}
+          ${value === 'X' ? 'text-blue-500' : value === 'O' ? 'text-red-500' : ''}
+          ${!value && gameStatus === "playing" && isMyTurn ? 'hover:bg-[var(--app-accent-light)] hover:bg-opacity-10' : ''}
           ${getLineClass()}
         `}
       >
@@ -330,7 +281,9 @@ export function TicTacToeFriend({ mode, rounds }: TicTacToeFriendProps) {
   };
 
   const getStatusMessage = () => {
-    if (gameStatus === "won") {
+    if (gameWinner) {
+      return gameWinner === myPlayer ? "You won the game!" : "Opponent won the game!";
+    } else if (gameStatus === "won") {
       const winnerLabel = winner === myPlayer ? "You Won!" : "Opponent Won!";
       return winnerLabel;
     } else if (gameStatus === "draw") {
@@ -348,6 +301,61 @@ export function TicTacToeFriend({ mode, rounds }: TicTacToeFriendProps) {
     }
   };
 
+  // Render rounds selection for host
+  if (showRoundsSelection) {
+    return (
+      <div className="w-full max-w-sm mx-auto p-4">
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold text-[var(--app-foreground)] mb-2">
+            Configure Game
+          </h2>
+          <p className="text-sm text-[var(--app-foreground-muted)] mb-4">
+            Select the number of rounds to play
+          </p>
+        </div>
+
+        {/* Rounds Selection */}
+        <div className="bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg p-6 mb-6">
+          <div className="text-center">
+            <h3 className="text-sm font-semibold text-[var(--app-foreground-muted)] mb-3 uppercase tracking-wide">
+              Number of Rounds
+            </h3>
+            <div className="flex justify-center space-x-2 mb-4">
+              {[3, 5, 7].map((rounds) => (
+                <button
+                  key={rounds}
+                  onClick={() => setTotalRounds(rounds)}
+                  className={`px-4 py-2 rounded-lg border transition-colors ${
+                    totalRounds === rounds
+                      ? "bg-[var(--app-accent)] text-white border-[var(--app-accent)]"
+                      : "bg-transparent border-[var(--app-card-border)] text-[var(--app-foreground)] hover:border-[var(--app-accent)]"
+                  }`}
+                >
+                  Best of {rounds}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-[var(--app-foreground-muted)]">
+              First to win {(totalRounds + 1) / 2} rounds wins the game
+            </p>
+          </div>
+        </div>
+
+        {/* Create Room Button */}
+        <div className="text-center">
+          <Button
+            variant="primary"
+            size="md"
+            onClick={createRoom}
+            className="w-full"
+          >
+            Create Room
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   // Render room code section for host
   if (connectionStatus === "hosting" && gameStatus === "waiting") {
     return (
@@ -359,6 +367,18 @@ export function TicTacToeFriend({ mode, rounds }: TicTacToeFriendProps) {
           <p className="text-sm text-[var(--app-foreground-muted)] mb-4">
             Share this code with your friend
           </p>
+        </div>
+
+        {/* Game Info */}
+        <div className="bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg p-4 mb-4">
+          <div className="text-center">
+            <h3 className="text-sm font-semibold text-[var(--app-foreground-muted)] mb-2 uppercase tracking-wide">
+              Game Settings
+            </h3>
+            <p className="text-lg font-bold text-[var(--app-accent)]">
+              Best of {totalRounds}
+            </p>
+          </div>
         </div>
 
         {/* Room Code Display */}
@@ -386,9 +406,7 @@ export function TicTacToeFriend({ mode, rounds }: TicTacToeFriendProps) {
         <div className="text-center">
           <div className="inline-flex items-center space-x-2 px-4 py-2 bg-yellow-100 text-yellow-700 rounded-full">
             <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></span>
-            <span className="text-sm font-medium">
-              Waiting for player to join...
-            </span>
+            <span className="text-sm font-medium">Waiting for player to join...</span>
           </div>
         </div>
       </div>
@@ -451,62 +469,51 @@ export function TicTacToeFriend({ mode, rounds }: TicTacToeFriendProps) {
           <div className="mb-4">
             <div className="w-8 h-8 border-4 border-[var(--app-accent)] border-t-transparent rounded-full animate-spin mx-auto"></div>
           </div>
-          <h2 className="text-xl font-bold text-[var(--app-foreground)] mb-2">
-            Connecting…
-          </h2>
-          <p className="text-sm text-[var(--app-foreground-muted)]">
-            Establishing connection to server…
-          </p>
+          <h2 className="text-xl font-bold text-[var(--app-foreground)] mb-2">Connecting…</h2>
+          <p className="text-sm text-[var(--app-foreground-muted)]">Establishing connection to server…</p>
         </div>
       </div>
     );
   }
+
   return (
     <div className="w-full max-w-sm mx-auto p-4">
       {/* Game Header */}
       <div className="text-center mb-6">
         <h2 className="text-2xl font-bold text-[var(--app-foreground)] mb-2">
-          Tic Tac Toe{" "}
-          {mode === "host" ? "(Host)" : mode === "join" ? "(Join)" : ""}
+          Tic Tac Toe {mode === "host" ? "(Host)" : mode === "join" ? "(Join)" : ""}
         </h2>
         <p className="text-sm text-[var(--app-foreground-muted)] mb-2">
-          Room: {roomCode}
+          Room: {roomCode} • Round {currentRound} of {totalRounds}
         </p>
-
-        {/* Match Progress */}
-        <div className="mb-3">
-          <div className="text-sm text-[var(--app-foreground-muted)] mb-1">
-            Round {matchState.currentRound} of {matchState.totalRounds}
-          </div>
-        </div>
-
-        <p
-          className={`text-lg font-medium ${
-            gameStatus === "playing"
-              ? isMyTurn
-                ? "text-[var(--app-accent)]"
-                : "text-[var(--app-foreground-muted)]"
-              : gameStatus === "won"
-                ? "text-[var(--app-accent)]"
-                : "text-yellow-500"
-          }`}
-        >
+        {gameWinner && (
+          <p className="text-lg font-bold text-[var(--app-accent)] mb-2">
+            {gameWinner === myPlayer ? "You won the game!" : "Opponent won the game!"}
+          </p>
+        )}
+        <p className={`text-lg font-medium ${
+          gameStatus === "playing" 
+            ? isMyTurn ? "text-[var(--app-accent)]" : "text-[var(--app-foreground-muted)]"
+            : gameStatus === "won" 
+              ? "text-[var(--app-accent)]" 
+              : "text-yellow-500"
+        }`}>
           {getStatusMessage()}
         </p>
       </div>
 
-      {/* Scoreboard */}
+      {/* Round Scores */}
       <div className="mb-4">
         <div className="bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg p-2">
           <div className="text-center mb-1">
             <h3 className="text-xs font-semibold text-[var(--app-foreground-muted)] uppercase tracking-wide">
-              Score
+              Round Scores
             </h3>
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <div className="text-center">
               <div className="text-lg font-bold text-blue-500">
-                {score.host}
+                {roundScores.host}
               </div>
               <div className="text-xs text-[var(--app-foreground-muted)]">
                 Host
@@ -514,18 +521,10 @@ export function TicTacToeFriend({ mode, rounds }: TicTacToeFriendProps) {
             </div>
             <div className="text-center">
               <div className="text-lg font-bold text-red-500">
-                {score.guest}
+                {roundScores.guest}
               </div>
               <div className="text-xs text-[var(--app-foreground-muted)]">
                 Guest
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-bold text-gray-500">
-                {score.draws}
-              </div>
-              <div className="text-xs text-[var(--app-foreground-muted)]">
-                Draws
               </div>
             </div>
           </div>
@@ -537,49 +536,45 @@ export function TicTacToeFriend({ mode, rounds }: TicTacToeFriendProps) {
         <div className="p-4">
           {/* Game Board */}
           <div className="grid grid-cols-3 gap-0 border-2 border-[var(--app-card-border)] border-opacity-50 rounded-lg overflow-hidden">
-            {Array(9)
-              .fill(null)
-              .map((_, index) => (
-                <div
-                  key={index}
-                  className={`
-                  ${index % 3 !== 2 ? "border-r border-[var(--app-card-border)] border-opacity-30" : ""}
-                  ${index < 6 ? "border-b border-[var(--app-card-border)] border-opacity-30" : ""}
+            {Array(9).fill(null).map((_, index) => (
+              <div
+                key={index}
+                className={`
+                  ${index % 3 !== 2 ? 'border-r border-[var(--app-card-border)] border-opacity-30' : ''}
+                  ${index < 6 ? 'border-b border-[var(--app-card-border)] border-opacity-30' : ''}
                 `}
-                >
-                  {renderCell(index)}
-                </div>
-              ))}
+              >
+                {renderCell(index)}
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Game Controls - Only show when game is finished */}
-      {(gameStatus === "won" || gameStatus === "draw") && (
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button
-            variant="primary"
-            size="md"
-            onClick={resetGame}
-            className="flex-1 sm:flex-none"
-          >
-            New Game
-          </Button>
-
+      {/* Game Controls */}
+      <div className="flex flex-col sm:flex-row gap-3 justify-center">
+        <Button
+          variant="primary"
+          size="md"
+          onClick={resetGame}
+          className="flex-1 sm:flex-none"
+          disabled={!!gameWinner || currentRound > totalRounds}
+        >
+          {gameWinner ? "Game Over" : "Next Round"}
+        </Button>
+        
+        {gameWinner && (
           <Button
             variant="outline"
             size="md"
             onClick={() => {
-              // Share match results
-              const message = matchState.matchWinner
-                ? `Match Results:\nHost: ${matchState.hostWins}\nGuest: ${matchState.guestWins}\nWinner: ${matchState.matchWinner === "X" ? "Host" : "Guest"}`
-                : `Match in Progress:\nHost: ${matchState.hostWins}\nGuest: ${matchState.guestWins}\nRound ${matchState.currentRound} of ${matchState.totalRounds}`;
-
+              // Share total results
+              const message = `Tic Tac Toe results:\nHost: ${roundScores.host}\nGuest: ${roundScores.guest}\nRounds: ${totalRounds}\nWinner: ${gameWinner === "X" ? "Host" : "Guest"}`;
               if (navigator.share) {
                 navigator.share({
-                  title: "Tic Tac Toe Match Results",
+                  title: 'Tic Tac Toe Results',
                   text: message,
-                  url: window.location.href,
+                  url: window.location.href
                 });
               } else {
                 // Fallback to copying to clipboard
@@ -590,18 +585,13 @@ export function TicTacToeFriend({ mode, rounds }: TicTacToeFriendProps) {
           >
             Share Result
           </Button>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Game Stats */}
       <div className="mt-6 text-center text-sm text-[var(--app-foreground-muted)]">
-        <p>
-          You are playing as:{" "}
-          <span className="font-semibold text-[var(--app-accent)]">
-            Player {myPlayer}
-          </span>
-        </p>
+        <p>You are playing as: <span className="font-semibold text-[var(--app-accent)]">Player {myPlayer}</span></p>
       </div>
     </div>
   );
-}
+} 
