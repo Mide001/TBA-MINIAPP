@@ -4,7 +4,6 @@ import { useState, useCallback, useEffect } from "react";
 import { Button } from "./DemoComponents";
 
 type Player = "X" | "O" | null;
-type BoardState = (Player | null)[];
 
 export function TicTacToe() {
   const [board, setBoard] = useState<Player[]>(Array(9).fill(null));
@@ -90,7 +89,7 @@ export function TicTacToe() {
     }
   };
 
-  const getAIMove = (squares: Player[]): number => {
+  const getAIMove = useCallback((squares: Player[]): number => {
     const emptySquares = getEmptySquares(squares);
     let bestScore = -Infinity;
     let bestMove = emptySquares[0];
@@ -106,7 +105,7 @@ export function TicTacToe() {
     }
 
     return bestMove;
-  };
+  }, [minimax]);
 
   const handleClick = (index: number) => {
     if (board[index] || calculateWinner(board).winner || isAITurn || gameResult)
@@ -130,7 +129,7 @@ export function TicTacToe() {
 
       return () => clearTimeout(timer);
     }
-  }, [isAITurn, board]);
+  }, [isAITurn, board, getAIMove]);
 
   useEffect(() => {
     const { winner, line } = calculateWinner(board);
