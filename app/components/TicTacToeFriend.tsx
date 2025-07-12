@@ -41,6 +41,7 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
   // Add startingPlayer state
   const [startingPlayer, setStartingPlayer] = useState<Player>("X");
   const moveSoundRef = useRef<HTMLAudioElement | null>(null);
+  const [codeCopied, setCodeCopied] = useState<boolean>(false);
 
   // Play sound function that doesn't block UI
   const playMoveSound = useCallback(() => {
@@ -274,6 +275,11 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
 
   const copyRoomCode = useCallback(() => {
     navigator.clipboard.writeText(roomCode);
+    setCodeCopied(true);
+    // Reset the copied state after 2 seconds
+    setTimeout(() => {
+      setCodeCopied(false);
+    }, 2000);
   }, [roomCode]);
 
   const resetGame = useCallback(() => {
@@ -497,9 +503,10 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
               size="md"
               onClick={copyRoomCode}
               className="w-full"
+              disabled={codeCopied}
             >
               <Icon name="check" size="sm" className="mr-2" />
-              Copy Code
+              {codeCopied ? "Copied!" : "Copy Code"}
             </Button>
           </div>
         </div>
