@@ -391,7 +391,7 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
       return gameWinner === myPlayer
         ? "You won the game!"
         : "Opponent won the game!";
-    } else if (gameStatus === "won") {
+    } else if (gameStatus === "won" || winner) {
       const winnerLabel = winner === myPlayer ? "You Won!" : "Opponent Won!";
       return winnerLabel;
     } else if (gameStatus === "draw") {
