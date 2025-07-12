@@ -42,6 +42,12 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
   const [startingPlayer, setStartingPlayer] = useState<Player>("X");
   const moveSoundRef = useRef<HTMLAudioElement | null>(null);
   const [codeCopied, setCodeCopied] = useState<boolean>(false);
+  const [roomInfo, setRoomInfo] = useState<{
+    totalRounds: number;
+    currentRound: number;
+    roundScores: { host: number; guest: number };
+  } | null>(null);
+  const [checkingRoom, setCheckingRoom] = useState<boolean>(false);
 
   // Play sound function that doesn't block UI
   const playMoveSound = useCallback(() => {
@@ -196,6 +202,23 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
       alert(error.message);
     });
 
+    newSocket.on("room-info", (room) => {
+      console.log("Room info received:", room);
+      setRoomInfo({
+        totalRounds: room.totalRounds || 3,
+        currentRound: room.currentRound || 1,
+        roundScores: room.roundScores || { host: 0, guest: 0 }
+      });
+      setCheckingRoom(false);
+    });
+
+    newSocket.on("room-not-found", () => {
+      console.log("Room not found");
+      setRoomInfo(null);
+      setCheckingRoom(false);
+      alert("Room not found. Please check the room code.");
+    });
+
     return () => {
       newSocket.close();
     };
@@ -270,6 +293,13 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
     if (inputCode.length === 6 && socket) {
       setRoomCode(inputCode);
       socket.emit("join-room", inputCode);
+    }
+  }, [inputCode, socket]);
+
+  const checkRoomInfo = useCallback(() => {
+    if (inputCode.length === 6 && socket) {
+      setCheckingRoom(true);
+      socket.emit("check-room", inputCode);
     }
   }, [inputCode, socket]);
 
@@ -546,22 +576,63 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
             <input
               type="text"
               value={inputCode}
-              onChange={(e) => setInputCode(e.target.value.toUpperCase())}
+              onChange={(e) => {
+                setInputCode(e.target.value.toUpperCase());
+                setRoomInfo(null); // Clear room info when code changes
+              }}
               placeholder="Enter 6-digit code"
               maxLength={6}
               className="w-full text-center text-2xl font-bold text-[var(--app-accent)] tracking-wider bg-transparent border-b-2 border-[var(--app-card-border)] focus:border-[var(--app-accent)] outline-none py-2 mb-4"
             />
-            <Button
-              variant="primary"
-              size="md"
-              onClick={handleJoinGame}
-              disabled={inputCode.length !== 6}
-              className="w-full"
-            >
-              Join Game
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="md"
+                onClick={checkRoomInfo}
+                disabled={inputCode.length !== 6 || checkingRoom}
+                className="flex-1"
+              >
+                {checkingRoom ? "Checking..." : "Check Room"}
+              </Button>
+              <Button
+                variant="primary"
+                size="md"
+                onClick={handleJoinGame}
+                disabled={inputCode.length !== 6}
+                className="flex-1"
+              >
+                Join Game
+              </Button>
+            </div>
           </div>
         </div>
+
+        {/* Room Info Display */}
+        {roomInfo && (
+          <div className="bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg p-4 mb-6">
+            <div className="text-center">
+              <h3 className="text-sm font-semibold text-[var(--app-foreground-muted)] mb-3 uppercase tracking-wide">
+                Game Settings
+              </h3>
+              <div className="space-y-2">
+                <p className="text-lg font-bold text-[var(--app-accent)]">
+                  Best of {roomInfo.totalRounds}
+                </p>
+                <p className="text-sm text-[var(--app-foreground-muted)]">
+                  Current Round: {roomInfo.currentRound}
+                </p>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span className="text-blue-500 font-semibold">Host:</span> {roomInfo.roundScores.host}
+                  </div>
+                  <div>
+                    <span className="text-red-500 font-semibold">Guest:</span> {roomInfo.roundScores.guest}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Instructions */}
         <div className="text-center text-sm text-[var(--app-foreground-muted)]">
