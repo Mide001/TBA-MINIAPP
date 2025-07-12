@@ -389,8 +389,24 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
   };
 
   const getStatusMessage = () => {
-    if (gameWinner || gameStatus === "game-over") {
-      return gameWinner === myPlayer
+    // Debug logging
+    console.log("Status Debug:", {
+      gameWinner,
+      gameStatus,
+      winner,
+      myPlayer,
+      roundScores
+    });
+    
+    // Check if game is over based on scores
+    const roundsNeededToWin = Math.ceil(totalRounds / 2);
+    const hostWins = roundScores.host;
+    const guestWins = roundScores.guest;
+    const gameIsOver = hostWins >= roundsNeededToWin || guestWins >= roundsNeededToWin;
+    
+    if (gameWinner || gameStatus === "game-over" || gameIsOver) {
+      const actualWinner = gameWinner || (hostWins > guestWins ? "X" : "O");
+      return actualWinner === myPlayer
         ? "You won the game!"
         : "Opponent won the game!";
     } else if (gameStatus === "won" || winner) {
