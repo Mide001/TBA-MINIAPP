@@ -75,12 +75,9 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
   // Initialize Socket.IO connection
   useEffect(() => {
     // https://tba-miniapp-server-production.up.railway.app
-    const newSocket = io(
-      "https://tba-miniapp-server-production.up.railway.app",
-      {
-        transports: ["websocket", "polling"],
-      },
-    );
+    const newSocket = io("http://localhost:3001", {
+      transports: ["websocket", "polling"],
+    });
 
     newSocket.on("connect", () => {
       console.log("Connected to Socket.IO server");
@@ -205,18 +202,18 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
   useEffect(() => {
     if (moveSoundRef.current) {
       const audio = moveSoundRef.current;
-      
+
       const handleError = () => {
         console.warn("Audio failed to load");
       };
-      
-      audio.addEventListener('error', handleError);
-      
+
+      audio.addEventListener("error", handleError);
+
       // Try to load the audio
       audio.load();
-      
+
       return () => {
-        audio.removeEventListener('error', handleError);
+        audio.removeEventListener("error", handleError);
       };
     }
   }, []);
@@ -284,7 +281,12 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
 
   const resetGame = useCallback(() => {
     // Additional validation to prevent unauthorized resets
-    if (!socket || currentRound >= totalRounds || gameStatus === "playing" || (gameStatus !== "won" && gameStatus !== "draw")) {
+    if (
+      !socket ||
+      currentRound >= totalRounds ||
+      gameStatus === "playing" ||
+      (gameStatus !== "won" && gameStatus !== "draw")
+    ) {
       console.warn("Reset game blocked - invalid conditions");
       return;
     }
@@ -387,7 +389,7 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
   };
 
   const getStatusMessage = () => {
-    if (gameWinner) {
+    if (gameWinner || gameStatus === "game-over") {
       return gameWinner === myPlayer
         ? "You won the game!"
         : "Opponent won the game!";
@@ -684,9 +686,9 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
           onClick={resetGame}
           className="flex-1 sm:flex-none"
           disabled={
-            !!gameWinner || 
-            currentRound >= totalRounds || 
-            gameStatus === "playing" || 
+            !!gameWinner ||
+            currentRound >= totalRounds ||
+            gameStatus === "playing" ||
             gameStatus === "waiting" ||
             !isConnected ||
             (gameStatus !== "won" && gameStatus !== "draw")
@@ -732,11 +734,7 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
           Starting Player: {startingPlayer === myPlayer ? "You" : "Opponent"}
         </p>
       </div>
-      <audio 
-        ref={moveSoundRef} 
-        src="/move.mp3" 
-        preload="auto"
-      />
+      <audio ref={moveSoundRef} src="/move.mp3" preload="auto" />
     </div>
   );
 }
