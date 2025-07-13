@@ -1,6 +1,6 @@
 "use client";
-
-import { useState } from "react";
+import { sdk } from "@farcaster/miniapp-sdk";
+import { useState, useEffect } from "react";
 import { Button } from "./DemoComponents";
 import { Icon } from "./DemoComponents";
 
@@ -25,6 +25,24 @@ export function Onboarding({ onGameModeSelect }: OnboardingProps) {
     }
   };
 
+  // Get user profile - you'll need to get the FID from the context
+  // For now, let's log available SDK properties
+  const [userProfile, setUserProfile] = useState<any>(null);
+  
+  useEffect(() => {
+    // Log SDK properties to see what's available
+    console.log("SDK:", sdk);
+    console.log("SDK Actions:", Object.keys(sdk.actions));
+    
+    // You can get the user FID from the context when available
+    // const userFid = context?.user?.fid;
+    // if (userFid) {
+    //   sdk.actions.viewProfile({ fid: userFid }).then(profile => {
+    //     console.log("User Profile:", profile);
+    //     setUserProfile(profile);
+    //   });
+    // }
+  }, []);
   const handleFriendModeSelect = (mode: FriendMode) => {
     setFriendMode(mode);
     onGameModeSelect("friend", mode);
