@@ -42,6 +42,7 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
   const [startingPlayer, setStartingPlayer] = useState<Player>("X");
   const moveSoundRef = useRef<HTMLAudioElement | null>(null);
   const [codeCopied, setCodeCopied] = useState<boolean>(false);
+  const [roomCreated, setRoomCreated] = useState<boolean>(false);
 
   // Play sound function that doesn't block UI
   const playMoveSound = useCallback(() => {
@@ -77,6 +78,10 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
     // https://tba-miniapp-server-production.up.railway.app
     const newSocket = io("https://tba-miniapp-server-production.up.railway.app", {
       transports: ["websocket", "polling"],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
     });
 
     newSocket.on("connect", () => {
@@ -90,10 +95,16 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
       setIsConnected(false);
     });
 
+    newSocket.on("reconnect", (attemptNumber) => {
+      console.log("Reconnected to Socket.IO server after", attemptNumber, "attempts");
+      setIsConnected(true);
+    });
+
     newSocket.on("room-created", (room) => {
       console.log("Room created:", room);
       setConnectionStatus("hosting");
       setGameStatus("waiting");
+      setRoomCreated(true);
       // Initialize rounds data from room
       if (room.totalRounds) {
         setTotalRounds(room.totalRounds);
@@ -222,16 +233,17 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
   useEffect(() => {
     if (!socket || !isConnected) return;
 
-    if (mode === "host") {
+    // Only initialize if we haven't already set up the room
+    if (mode === "host" && !roomCreated) {
       const code = generateRoomCode();
       setRoomCode(code);
       setMyPlayer("X");
       setShowRoundsSelection(true);
-    } else if (mode === "join") {
+    } else if (mode === "join" && connectionStatus === "disconnected") {
       setConnectionStatus("joining");
       setMyPlayer("O");
     }
-  }, [mode, socket, isConnected, generateRoomCode]);
+  }, [mode, socket, isConnected, generateRoomCode, roomCreated, connectionStatus]);
 
   // Winning combinations
   const winningCombos = [
