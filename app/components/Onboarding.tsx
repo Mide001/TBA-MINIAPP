@@ -11,10 +11,49 @@ interface OnboardingProps {
   onGameModeSelect: (mode: GameMode, friendMode?: FriendMode) => void;
 }
 
+type UserProfile = { username?: string; displayName?: string; [key: string]: unknown };
+
 export function Onboarding({ onGameModeSelect }: OnboardingProps) {
   const [selectedMode, setSelectedMode] = useState<GameMode>(null);
   const [friendMode, setFriendMode] = useState<FriendMode>(null);
   const [showFriendOptions, setShowFriendOptions] = useState(false);
+  // User profile state
+  const [userFid, setUserFid] = useState<number | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+
+  // Fetch user FID from SDK context
+  useEffect(() => {
+    sdk.context?.then(ctx => {
+      if (ctx?.user?.fid) {
+        setUserFid(ctx.user.fid);
+      } else {
+        setUserFid(null);
+      }
+    });
+  }, []);
+
+  // Fetch user profile when we have the FID
+  useEffect(() => {
+    if (userFid) {
+      setProfileLoading(true);
+      sdk.actions.viewProfile({ fid: userFid })
+        .then(profile => {
+          if (typeof profile === "object" && profile !== null) {
+            setUserProfile(profile as UserProfile);
+          } else {
+            setUserProfile(null);
+          }
+        })
+        .catch(err => {
+          setUserProfile(null);
+          console.error("Error fetching profile:", err);
+        })
+        .finally(() => setProfileLoading(false));
+    } else {
+      setUserProfile(null);
+    }
+  }, [userFid]);
 
   const handleModeSelect = (mode: GameMode) => {
     setSelectedMode(mode);
@@ -25,10 +64,6 @@ export function Onboarding({ onGameModeSelect }: OnboardingProps) {
     }
   };
 
-  // Get user profile - you'll need to get the FID from the context
-  // For now, let's log available SDK properties
-  const [userProfile, setUserProfile] = useState<any>(null);
-  
   useEffect(() => {
     // Log SDK properties to see what's available
     console.log("SDK:", sdk);
@@ -39,7 +74,6 @@ export function Onboarding({ onGameModeSelect }: OnboardingProps) {
     // if (userFid) {
     //   sdk.actions.viewProfile({ fid: userFid }).then(profile => {
     //     console.log("User Profile:", profile);
-    //     setUserProfile(profile);
     //   });
     // }
   }, []);
@@ -56,6 +90,22 @@ export function Onboarding({ onGameModeSelect }: OnboardingProps) {
 
   return (
     <div className="w-full max-w-sm mx-auto px-4 py-6">
+      {/* User Profile Display */}
+      <div className="mb-4 text-center">
+        {profileLoading ? (
+          <span className="text-sm text-[var(--app-foreground-muted)]">Loading profile...</span>
+        ) : userFid ? (
+          userProfile ? (
+            <span className="text-sm text-[var(--app-foreground)] font-medium">
+              Signed in as: <span className="font-bold">{userProfile.username || userProfile.displayName || userFid}</span> (FID: {userFid})
+            </span>
+          ) : (
+            <span className="text-sm text-[var(--app-foreground-muted)]">Profile not found (FID: {userFid})</span>
+          )
+        ) : (
+          <span className="text-sm text-[var(--app-foreground-muted)]">Not signed in</span>
+        )}
+      </div>
       {/* Header */}
       <div className="text-center mb-8">
         <div className="mb-4">
