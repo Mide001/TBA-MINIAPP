@@ -43,6 +43,8 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
   const moveSoundRef = useRef<HTMLAudioElement | null>(null);
   const [codeCopied, setCodeCopied] = useState<boolean>(false);
   const [roomCreated, setRoomCreated] = useState<boolean>(false);
+  const [connectionTimer, setConnectionTimer] = useState<number>(0);
+  const [isConnecting, setIsConnecting] = useState<boolean>(false);
 
   // Play sound function that doesn't block UI
   const playMoveSound = useCallback(() => {
@@ -87,17 +89,27 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
     newSocket.on("connect", () => {
       console.log("Connected to Socket.IO server");
       setIsConnected(true);
+      setIsConnecting(false);
+      setConnectionTimer(0);
       setSocket(newSocket);
     });
 
     newSocket.on("disconnect", () => {
       console.log("Disconnected from Socket.IO server");
       setIsConnected(false);
+      setIsConnecting(true);
     });
 
     newSocket.on("reconnect", (attemptNumber) => {
       console.log("Reconnected to Socket.IO server after", attemptNumber, "attempts");
       setIsConnected(true);
+      setIsConnecting(false);
+      setConnectionTimer(0);
+    });
+
+    newSocket.on("connect_error", (error) => {
+      console.log("Connection error:", error);
+      setIsConnecting(true);
     });
 
     newSocket.on("room-created", (room) => {
@@ -208,6 +220,28 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
       newSocket.close();
     };
   }, [myPlayer, playMoveSound]);
+
+  // Connection timer effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (isConnecting && connectionTimer < 30) {
+      interval = setInterval(() => {
+        setConnectionTimer(prev => prev + 1);
+      }, 1000);
+    }
+    
+    // Connection timeout after 30 seconds
+    if (connectionTimer >= 30) {
+      setIsConnecting(false);
+      setConnectionTimer(0);
+      console.warn("Connection timeout reached");
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isConnecting, connectionTimer]);
 
   // Initialize audio element
   useEffect(() => {
@@ -613,9 +647,21 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
           <h2 className="text-xl font-bold text-[var(--app-foreground)] mb-2">
             Connecting…
           </h2>
-          <p className="text-sm text-[var(--app-foreground-muted)]">
+          <p className="text-sm text-[var(--app-foreground-muted)] mb-2">
             Establishing connection to server…
           </p>
+          {isConnecting && connectionTimer > 0 && (
+            <div className="mt-4">
+              <p className="text-sm text-[var(--app-foreground-muted)]">
+                Attempting to reconnect... ({connectionTimer}s)
+              </p>
+              {connectionTimer >= 30 && (
+                <p className="text-xs text-red-500 mt-1">
+                  Connection timeout. Please refresh the page.
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
     );
