@@ -1,6 +1,6 @@
 "use client";
 import { sdk } from "@farcaster/miniapp-sdk";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "./DemoComponents";
 import { Icon } from "./DemoComponents";
 
@@ -15,6 +15,21 @@ export function Onboarding({ onGameModeSelect }: OnboardingProps) {
   const [selectedMode, setSelectedMode] = useState<GameMode>(null);
   const [friendMode, setFriendMode] = useState<FriendMode>(null);
   const [showFriendOptions, setShowFriendOptions] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  // Get user context
+  useEffect(() => {
+    const getUser = async () => {
+      try {
+        const { user } = await sdk.context;
+        console.log("User: ", user.fid, user.username, user.displayName, user.pfpUrl);
+        setUser(user);
+      } catch (error) {
+        console.error("Error getting user context:", error);
+      }
+    };
+    getUser();
+  }, []);
 
   const handleModeSelect = (mode: GameMode) => {
     setSelectedMode(mode);
@@ -25,7 +40,6 @@ export function Onboarding({ onGameModeSelect }: OnboardingProps) {
     }
   };
 
-  console.log("User: ", sdk.actions.viewProfile);
   const handleFriendModeSelect = (mode: FriendMode) => {
     setFriendMode(mode);
     onGameModeSelect("friend", mode);
