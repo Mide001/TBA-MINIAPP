@@ -1,4 +1,5 @@
 import React from "react";
+import Image from "next/image";
 
 interface UserProfileProps {
   user: {
@@ -13,9 +14,11 @@ export function UserProfile({ user }: UserProfileProps) {
     <div className="flex items-center gap-3 p-3 bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-xl shadow-sm mb-4">
       <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
         {user.pfpUrl ? (
-          <img
+          <Image
             src={user.pfpUrl}
             alt={user.displayName || user.username || "User"}
+            width={48}
+            height={48}
             className="w-full h-full object-cover"
           />
         ) : (
