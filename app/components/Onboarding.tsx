@@ -15,7 +15,6 @@ export function Onboarding({ onGameModeSelect }: OnboardingProps) {
   const [selectedMode, setSelectedMode] = useState<GameMode>(null);
   const [friendMode, setFriendMode] = useState<FriendMode>(null);
   const [showFriendOptions, setShowFriendOptions] = useState(false);
-  const [user, setUser] = useState<any>(null);
 
   // Get user context
   useEffect(() => {
@@ -23,7 +22,6 @@ export function Onboarding({ onGameModeSelect }: OnboardingProps) {
       try {
         const { user } = await sdk.context;
         console.log("User: ", user.fid, user.username, user.displayName, user.pfpUrl);
-        setUser(user);
       } catch (error) {
         console.error("Error getting user context:", error);
       }
