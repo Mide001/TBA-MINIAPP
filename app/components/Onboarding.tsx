@@ -16,7 +16,12 @@ export function Onboarding({ onGameModeSelect }: OnboardingProps) {
   const [selectedMode, setSelectedMode] = useState<GameMode>(null);
   const [friendMode, setFriendMode] = useState<FriendMode>(null);
   const [showFriendOptions, setShowFriendOptions] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{
+    pfpUrl?: string;
+    displayName?: string;
+    username?: string;
+    fid?: number;
+  } | null>(null);
 
   // Get user context
   useEffect(() => {
