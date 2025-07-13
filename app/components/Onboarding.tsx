@@ -3,6 +3,7 @@ import { sdk } from "@farcaster/miniapp-sdk";
 import { useState, useEffect } from "react";
 import { Button } from "./DemoComponents";
 import { Icon } from "./DemoComponents";
+import { UserProfile } from "./UserProfile";
 
 type GameMode = "computer" | "friend" | null;
 type FriendMode = "host" | "join" | null;
@@ -15,13 +16,14 @@ export function Onboarding({ onGameModeSelect }: OnboardingProps) {
   const [selectedMode, setSelectedMode] = useState<GameMode>(null);
   const [friendMode, setFriendMode] = useState<FriendMode>(null);
   const [showFriendOptions, setShowFriendOptions] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
   // Get user context
   useEffect(() => {
     const getUser = async () => {
       try {
         const { user } = await sdk.context;
-        console.log("User: ", user.fid, user.username, user.displayName, user.pfpUrl);
+        setUser(user);
       } catch (error) {
         console.error("Error getting user context:", error);
       }
@@ -51,6 +53,8 @@ export function Onboarding({ onGameModeSelect }: OnboardingProps) {
 
   return (
     <div className="w-full max-w-sm mx-auto px-4 py-6">
+      {/* User Profile */}
+      {user && <UserProfile user={user} />}
       {/* Header */}
       <div className="text-center mb-8">
         <div className="mb-4">
