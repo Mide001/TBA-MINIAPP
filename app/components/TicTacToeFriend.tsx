@@ -75,7 +75,7 @@ export function TicTacToeFriend({ mode }: TicTacToeFriendProps) {
   // Initialize Socket.IO connection
   useEffect(() => {
     // https://tba-miniapp-server-production.up.railway.app
-    const newSocket = io("http://localhost:3001", {
+    const newSocket = io("https://tba-miniapp-server-production.up.railway.app", {
       transports: ["websocket", "polling"],
     });
 
